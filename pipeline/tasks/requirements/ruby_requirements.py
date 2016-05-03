@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Requirements for Ruby codegen."""
 
-"""Main class to start conductor.
-"""
-
-from pipeline.conductors import gapic_conductor
+from pipeline.tasks.requirements import task_requirement_base
 
 
-def main():
-  gapic_conductor.run()
+class RubyFormatRequirements(task_requirement_base.TaskRequirementBase):
 
+    @classmethod
+    def require(cls):
+        return ['rubocop']
 
-if __name__ == '__main__':
-  main()
+    @classmethod
+    def install(cls):
+        # Intentionally do nothing
+        pass
