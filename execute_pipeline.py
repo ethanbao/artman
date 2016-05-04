@@ -40,19 +40,28 @@ import ast
 import os
 import yaml
 
-from taskflow import engines, task
+from gcloud import storage
+from taskflow import engines, task, states
 from pipeline.pipelines import pipeline_factory
-from pipeline.utils import job_util
+from pipeline.utils import job_util, pipeline_util
 
 
 def main():
   pipeline_name, pipeline_kwargs, remote_mode = _parse_args()
-  pipeline = pipeline_factory.make_pipeline(pipeline_name, **pipeline_kwargs)
 
   if remote_mode:
-    job_util.post_remote_pipeline_job(pipeline)
+    pipeline = pipeline_factory.make_pipeline(
+        pipeline_name, True, **pipeline_kwargs)
+    jb = job_util.post_remote_pipeline_job_and_wait(pipeline)
+    task_details = job_util.fetch_job_status(jb)
+    for task_detail in task_details:
+      if task_detail.name == 'BlobUploadTask':
+        bucket_name, path, _ = task_detail.results
+        pipeline_util.download_from_gcs(bucket_name, path, '/tmp')
   else:
-    # Hardcoded to execute the pipeline in serial engine, though not necessarily.
+    pipeline = pipeline_factory.make_pipeline(
+        pipeline_name, False, **pipeline_kwargs)
+    # Hardcoded to run pipeline in serial engine, though not necessarily.
     engine = engines.load(pipeline.flow, engine="serial", store=pipeline.kwargs)
     engine.run()
 

@@ -18,6 +18,10 @@ import os
 import subprocess
 import urlparse
 
+from pipeline.tasks import io_tasks
+from taskflow import engines
+from taskflow.patterns import linear_flow
+
 
 def validate_exists(required, **kwargs):
     for arg in required:
@@ -33,3 +37,16 @@ def download(url, directory):
         subprocess.check_call(
             ['curl', '-o', directory + filename, '-sL', url])
     return directory + filename
+
+def task_transition(state, details):
+    print("Task '%s' transition to state %s" % (details['task_name'], state))
+
+def download_from_gcs(bucket_name, path, output_dir):
+    flow = linear_flow.Flow('download_from_gcs')
+    args = {'bucket_name': bucket_name,
+              'path': path,
+              'output_dir': output_dir}
+    flow.add(io_tasks.BlobDownloadTask(
+        'BlobDownload'))
+    engine = engines.load(flow, engine="serial", store=args)
+    engine.run()

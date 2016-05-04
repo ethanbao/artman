@@ -88,6 +88,9 @@ class PythonGrpcClientPipeline(pipeline_base.PipelineBase):
     def validate_kwargs(self, **kwargs):
         _validate_codegen_kwargs([], **kwargs)
 
+    def support_remote_mode(self):
+        return True
+
 
 class PythonGapicClientPipeline(pipeline_base.PipelineBase):
 
@@ -107,6 +110,9 @@ class PythonGapicClientPipeline(pipeline_base.PipelineBase):
 
     def validate_kwargs(self, **kwargs):
         _validate_codegen_kwargs(_VGEN_REQUIRED, **kwargs)
+
+    def support_remote_mode(self):
+        return True
 
 
 class RubyGrpcClientPipeline(pipeline_base.PipelineBase):

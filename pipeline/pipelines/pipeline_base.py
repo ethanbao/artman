@@ -52,6 +52,9 @@ class PipelineBase(object):
         """
         raise NotImplementedError('Subclass must implement abstract method')
 
+    def support_remote_mode(self):
+        return False
+
     @property
     def flow(self):
         return self._flow

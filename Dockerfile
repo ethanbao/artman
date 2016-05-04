@@ -31,7 +31,7 @@ ADD ./scripts /scripts
 WORKDIR /scripts
 # This is need to install nodejs 4.x otherwise nodejs 0.x will be installed.
 RUN bash setup_node4.sh
-RUN apt-get install -y nodejs 
+RUN apt-get install -y nodejs
 
 # Install linuxbrew.
 RUN useradd -m -s /bin/bash linuxbrew

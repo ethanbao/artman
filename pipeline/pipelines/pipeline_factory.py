@@ -15,13 +15,18 @@
 """Factory function that recreates pipeline based on pipeline name and
 kwargs."""
 
+import time
+import uuid
+
 from pipeline.pipelines import pipeline_base
 # These are required to list the subclasses of pipeline_base
 from pipeline.pipelines import sample_pipeline  # noqa
 from pipeline.pipelines import code_generation_pipeline  # noqa
 
+from pipeline.tasks import io_tasks
 
-def make_pipeline_flow(pipeline_name, **kwargs):
+
+def make_pipeline_flow(pipeline_name, remote_mode=False, **kwargs):
     """Factory function to make a GAPIC pipeline.
 
     Because the GAPIC pipeline is using OpenStack Taskflow, this factory
@@ -35,14 +40,16 @@ def make_pipeline_flow(pipeline_name, **kwargs):
     the reimportable name can be located).
 
     """
-    return make_pipeline(pipeline_name, **kwargs).flow
+    return make_pipeline(pipeline_name, remote_mode, **kwargs).flow
 
-
-def make_pipeline(pipeline_name, **kwargs):
+def make_pipeline(pipeline_name, remote_mode=False, **kwargs):
     for cls in _rec_subclasses(pipeline_base.PipelineBase):
         if cls.__name__ == pipeline_name:
             print("Create %s instance." % pipeline_name)
-            return cls(**kwargs)
+            pipeline = cls(**kwargs)
+            if remote_mode and pipeline.support_remote_mode():
+                _add_tasks_for_remote_execution(pipeline)
+            return pipeline
     raise ValueError("Invalid pipeline name: %s" % pipeline_name)
 
 
@@ -55,3 +62,16 @@ def _rec_subclasses(cls):
             subclasses.append(subcls)
             subclasses += _rec_subclasses(subcls)
     return subclasses
+
+def _add_tasks_for_remote_execution(pipeline):
+    filename = str(uuid.uuid4()) + '.tar.gz'
+    pipeline.flow.add(
+        io_tasks.CompressOutputDirTask(
+            'CompressOutputDirTask',
+            inject = {'tarfile': filename, 'output_dir': 'output'}))
+    pipeline.flow.add(
+        io_tasks.BlobUploadTask(
+            'BlobUploadTask',
+            inject = {'bucket_name': 'pipeline',
+                      'src_path': filename,
+                      'dest_path': time.strftime('%Y/%m/%d') + '/' + filename}))

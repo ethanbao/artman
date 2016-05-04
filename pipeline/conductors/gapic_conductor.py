@@ -70,7 +70,8 @@ def run():
             cond = conductor_backends.fetch('blocking',
                                             my_name,
                                             job_backend,
-                                            persistence=persist_backend)
+                                            persistence=persist_backend,
+                                            engine='serial')
             # on_conductor_event = functools.partial(on_conductor_event, cond)
             # cond.notifier.register(cond.notifier.ANY, on_conductor_event)
             # Run forever, and kill -9 or ctrl-c me...
