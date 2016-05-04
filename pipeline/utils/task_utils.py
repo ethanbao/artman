@@ -11,15 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Utility functions related to tasks"""
 
 import subprocess
 
 
 def runGradleTask(task_name, task_path):
-    output = subprocess.check_output(
-        ['./gradlew', task_name], cwd=task_path)
+    output = subprocess.check_output(['./gradlew', task_name], cwd=task_path)
     # It is a convention that gradle task uses 'output: ' as
     # prefix in their output
     prefix = 'output: '
