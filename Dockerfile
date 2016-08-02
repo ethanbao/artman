@@ -63,7 +63,7 @@ ENV PATH $GOPATH/bin:/home/linuxbrew/.linuxbrew/opt/go/libexec/bin:$PATH
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 
 # Install pacman
-RUN npm install -g googleapis-packman@0.7.3
+RUN npm install -g googleapis-packman@0.8.0
 
 # Setup tools for codegen of Ruby
 RUN gem install rubocop --version '= 0.39.0' --no-ri --no-rdoc

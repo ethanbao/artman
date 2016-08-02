@@ -21,12 +21,7 @@ import urllib
 import zipfile
 
 from gcloud import storage
-from oauth2client.client import GoogleCredentials
 from pipeline.tasks import task_base
-
-
-def get_credential():
-    return GoogleCredentials.get_application_default()
 
 
 class BlobUploadTask(task_base.TaskBase):
@@ -41,7 +36,7 @@ class BlobUploadTask(task_base.TaskBase):
                 src_path,
                 dest_path):
         print "Start blob upload"
-        client = storage.Client(credentials=get_credential())
+        client = storage.Client()
         bucket = client.get_bucket(bucket_name)
         blob = bucket.blob(dest_path)
         with open(src_path, 'r') as f:
@@ -57,7 +52,7 @@ class BlobDownloadTask(task_base.TaskBase):
     It requires authentication be properly configured."""
 
     def execute(self, bucket_name, path, output_dir):
-        client = storage.Client(credentials=get_credential())
+        client = storage.Client()
         bucket = client.get_bucket(bucket_name)
         blob = bucket.get_blob(path)
         if not blob:
