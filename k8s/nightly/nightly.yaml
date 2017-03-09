@@ -1,0 +1,33 @@
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    run: nightly
+  name: nightly
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: nightly
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: nightly
+    spec:
+      containers:
+      - image: gcr.io/vkit-pipeline/github-googleapis-artman:latest
+        imagePullPolicy: Always
+        name: nightly
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+        command: ["python", "start_conductor --env=nightly"]
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
