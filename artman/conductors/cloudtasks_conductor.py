@@ -31,7 +31,7 @@ from artman.utils.logger import logger, output_logger
 
 def run(queue_name):
     task_client = _create_tasks_client()
-    if True:  # TODO change to when
+    while True:
         pull_task_response = _pull_task(task_client, queue_name)
         tasks = pull_task_response.get('tasks', [])
         if not tasks:
