@@ -100,13 +100,6 @@ def _execute_task(artman_user_config, task):
     artman_args = task_payload.decode("utf-8").split(' ')
     artman_args.append('--user-config')
     artman_args.append(artman_user_config)
-    # TODO(ethanbao): No longer need to override toolkit_path once the
-    # toolkit_path config in artman user config won't be overridden with
-    # ${REPOROOT}/toolkit
-    if os.environ.get('TOOLKIT_HOME'):
-        artman_args.append('--pipeline-kwargs')
-        artman_args.append(
-            '{"toolkit_path": "%s"}' % os.environ.get('TOOLKIT_HOME'))
     main.main(*artman_args)
 
 
@@ -139,7 +132,6 @@ def _prepare_dir(source_repo="https://github.com/googleapis/googleapis.git"):
         if os.environ.get('TOOLKIT_HOME'):
             toolkit_home = os.environ.get('TOOLKIT_HOME')
             file_.write(u'  toolkit: %s \n' % toolkit_home)
-            file_.write(u'toolkit_path: %s \n' % toolkit_home)
         file_.write(u'publish: noop \n')
     return repo_root, artman_user_config
 

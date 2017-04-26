@@ -30,5 +30,5 @@ class ParseArgsTests(unittest.TestCase):
             '--queue-name',
             'projects/foo/locations/bar/queues/baz',
             '-l')
-        assert flags.queue-name == 'projects/foo/locations/bar/queues/baz'
-        assert flags.log-local is True
+        assert flags.queue_name == 'projects/foo/locations/bar/queues/baz'
+        assert flags.log_local is True

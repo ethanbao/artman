@@ -31,9 +31,9 @@ def start(*args):
     if not args:
         args = sys.argv[1:]
     flags = _parse_args(*args)
-    if flags.log-local:
+    if flags.log_local:
         pylog.basicConfig()
-    cloudtasks_conductor.run(flags.queue-name)
+    cloudtasks_conductor.run(flags.queue_name)
 
 def _parse_args(*args):
     parser = _CreateArgumentParser()
