@@ -65,9 +65,8 @@ class CreateGitHubBranch(task_base.TaskBase):
         component = git_repo.get('gapic_component', '.')
         logger.info('Checking out fresh clone of %s.' % repo)
         try:
-            if github and repo.startswith('git@'):
-                repo = 'https://%s:%s@%s' % (github['username'], github['token'], repo[4:])
-                print(repo)
+            if repo.startswith('git@github.com:'):
+                repo = 'https://%s:%s@github.com/%s' % (github['username'], github['token'], repo[15:])
             self.exec_command(['git', 'clone', repo, repo_temp_dir])
 
             # Create a new branch for this API.

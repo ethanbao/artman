@@ -122,6 +122,7 @@ def _prepare_dir(source_repo="https://github.com/googleapis/googleapis.git"):
         raise e
     logger.info('Checking out fresh clone of %s.' % source_repo)
     googleapis_dir = os.path.join(repo_root, "googleapis")
+    subprocess.check_output(['rm', '-f', '.git/config'])
     git_clone_args = ['git', 'clone', source_repo, googleapis_dir]
     output = subprocess.check_output(git_clone_args)
     if output:
@@ -142,3 +143,6 @@ def _prepare_dir(source_repo="https://github.com/googleapis/googleapis.git"):
 
 def _cleanup_tmp_dir(tmp_dir):
     subprocess.check_call(['rm', '-rf', tmp_dir])
+    # Change working directory to the root tmp directory, as the current one
+    # has been removed.
+    os.chdir('/tmp')
