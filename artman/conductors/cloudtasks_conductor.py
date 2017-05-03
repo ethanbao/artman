@@ -34,6 +34,7 @@ from artman.utils.logger import logger, output_logger
 MAX_ATTEMPTS = 3
 CLOUD_LOGGING_CLIENT = cloud_logging.Client()
 
+
 def run(queue_name):
     task_client = _create_tasks_client()
     while True:
@@ -53,7 +54,7 @@ def _pull_and_execute_tasks(task_client, queue_name):
         try:
             log_file_handler = _setup_logger(log_file_path)
             logger.info('Starting to execute task %s' % task)
-            if (int(task['taskStatus']['attemptDispatchCount']) > MAX_ATTEMPTS):
+            if int(task['taskStatus']['attemptDispatchCount']) > MAX_ATTEMPTS:
                 logger.info('Delete task which exceeds max attempts.')
                 _delete_task(task_client, task)
                 continue
@@ -67,8 +68,7 @@ def _pull_and_execute_tasks(task_client, queue_name):
             logger.info('Cleanup tmp directory %s' % tmp_root)
             # Use task id as log name
             _write_to_cloud_logging(task_id, log_file_path)
-            log_file_handler.close()
-            _cleanup_tmp_dir(tmp_root)
+            _cleanup(tmp_root, log_file_handler)
 
 
 def _create_tasks_client():
@@ -119,8 +119,6 @@ def _delete_task(task_client, task):
 def _setup_logger(log_path):
     """Setup logger with one-time logging FileHandler."""
     logger = logging.getLogger('artman')
-    if logger.handlers:
-        logger.handlers.pop()
     log_file_handler = logging.FileHandler(log_path)
     logger.addHandler(log_file_handler)
     return log_file_handler
@@ -185,8 +183,19 @@ def _prepare_dir(source_repo="https://github.com/googleapis/googleapis.git"):
     return task_id, repo_root, artman_user_config, log_path
 
 
-def _cleanup_tmp_dir(tmp_dir):
+def _cleanup(tmp_dir, log_file_handler):
+    # Close the one-time logging FileHandler
+    if log_file_handler:
+        log_file_handler.close()
+
+    # Pop all logging handlers.
+    logger = logging.getLogger('artman')
+    if logger.handlers:
+        logger.handlers.pop()
+
+    # Remove tmp directory.
     subprocess.check_call(['rm', '-rf', tmp_dir])
+
     # Change working directory to the root tmp directory, as the current one
     # has been removed.
     os.chdir('/tmp')

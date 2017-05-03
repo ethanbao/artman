@@ -19,6 +19,8 @@ import uuid
 
 import github3
 
+import six
+
 from artman.tasks import task_base
 from artman.utils.logger import logger
 
@@ -56,13 +58,14 @@ class CreateGitHubBranch(task_base.TaskBase):
         # ultimately mutate the working directory.
         original_directory = os.curdir
 
-        # Make the GAPIC code directory an absolute path, since we will be
-        # moving around.
-        gapic_code_dir = os.path.realpath(gapic_code_dir)
+        # Track our code directories, and use absolute paths, since we will
+        # be moving around.
+        code_dirs = {'gapic': os.path.abspath(gapic_code_dir)}
+        if grpc_code_dir:
+            code_dirs['grpc'] = os.path.abspath(grpc_code_dir)
 
         # Check out the code from GitHub.
         repo = git_repo['location']
-        component = git_repo.get('gapic_component', '.')
         logger.info('Checking out fresh clone of %s.' % repo)
         try:
             if repo.startswith('git@github.com:'):
@@ -77,41 +80,51 @@ class CreateGitHubBranch(task_base.TaskBase):
                 salt=str(uuid.uuid4())[0:8],
             )
             os.chdir(repo_temp_dir)
+
+            # If there is a base branch, switch to it.
+            #
+            # This command naively assumes that the default branch is named
+            # "master", which is not a guarantee, but this is good enough
+            # for now.
+            if git_repo.get('branch', 'master') != 'master':
+                baseline = git_repo['branch']
+                logger.info('Checking out the {0} branch to use as a '
+                            'baseline.'.format(baseline))
+                self.exec_command(['git', 'checkout', '--track', '-b',
+                                   baseline, 'origin/%s' % baseline])
+
+            # Create the new branch off of the base branch.
             logger.info('Creating the {0} branch.'.format(branch_name))
             self.exec_command(['git', 'checkout', '-b', branch_name])
 
             # Copy the previously-generated GAPIC into the temporary
             # repository.
-            gapic_subpath = git_repo.get('gapic_subpath', '.')
-            src_path = os.path.abspath(os.path.join(gapic_code_dir, component))
-            self.exec_command(['git', 'rm', '-r', '--force',
-                               '--ignore-unmatch', gapic_subpath])
-            self.exec_command(['cp', '-rf', src_path, gapic_subpath])
-            self.exec_command(['git', 'add', gapic_subpath])
+            for path in git_repo.get('paths', ['.']):
+                # Piece together where we are copying code from and to.
+                if isinstance(path, (six.text_type, six.binary_type)):
+                    path = {'dest': path}
+                src = path.get('src', '.')
+                dest = path.get('dest', '.')
+                artifact = path.get('artifact', 'gapic')
+
+                # We need a full absolute path for the source, based on
+                # the code's original output location.
+                src = os.path.abspath(os.path.join(code_dirs[artifact], src))
+
+                # Actually copy the code.
+                self.exec_command(['git', 'rm', '-r', '--force',
+                                   '--ignore-unmatch', dest])
+                self.exec_command(['cp', '-rf', src, dest])
+                self.exec_command(['git', 'add', dest])
 
             # Commit the GAPIC.
             self.exec_command(['git', 'commit', '--allow-empty', '-m',
                 '{language} GAPIC: {api_name} {api_version}'.format(
-                    api_name=api_name,
+                    api_name=api_name.capitalize(),
                     api_version=api_version,
                     language=language.capitalize(),
                 ),
             ])
-
-            # If there is a separate GRPC to be staged, handle this also.
-            grpc_subpath = git_repo.get('grpc_subpath', None)
-            if grpc_subpath:
-                self.exec_command(['git', 'rm', '-r', '--force',
-                                   '--ignore-unmatch', grpc_subpath])
-                self.exec_command(['cp', '-rf', grpc_code_dir, grpc_subpath])
-                self.exec_command(['git', 'add', grpc_subpath])
-                self.exec_command(['git', 'commit', '--allow-empty', '-m',
-                    '{language} GRPC/Proto: {api_name} {api_version}'.format(
-                        api_name=api_name,
-                        api_version=api_version,
-                        language=language.capitalize(),
-                    ),
-                ])
 
             # Push the branch to GitHub.
             self.exec_command(['git', 'push', 'origin', branch_name])
@@ -151,7 +164,7 @@ class CreateGitHubPullRequest(task_base.TaskBase):
         """
         # Determine the pull request title.
         pr_title = '{language} GAPIC: {api_name} {api_version}'.format(
-            api_name=api_name,
+            api_name=api_name.capitalize(),
             api_version=api_version,
             language=language.capitalize(),
         )
