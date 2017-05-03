@@ -27,7 +27,6 @@ import six
 from taskflow.task import Task
 
 from artman.utils.logger import logger as artman_logger
-from artman.utils.logger import output_logger
 from artman.utils.logger import OUTPUT
 
 
@@ -36,10 +35,6 @@ class TaskBase(Task):
     cloud_logger = None
 
     def __init__(self, *args, **kwargs):
-        if 'inject' in kwargs and 'pipeline_id' in kwargs['inject']:
-            pipeline_id = kwargs['inject']['pipeline_id']
-            self.log_client = cloud_logging.Client()
-            self.cloud_logger = self.log_client.logger(pipeline_id)
         super(TaskBase, self).__init__(*args, **kwargs)
 
     def validate(self):
@@ -59,9 +54,6 @@ class TaskBase(Task):
                 logging.getLogger('artman').
             level (int): The log level. Defaults to logging.INFO.
         """
-        if self.cloud_logger:
-            # TODO(ethanbao): Do batch logging.
-            self.cloud_logger.log_text(msg)
         logger.log(level, msg)
 
     def exec_command(self, args):
