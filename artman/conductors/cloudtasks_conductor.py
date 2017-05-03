@@ -17,17 +17,22 @@
 from __future__ import absolute_import
 import base64
 import io
+import logging
 import os
 import subprocess
 import time
 import uuid
 
 from oauth2client.client import GoogleCredentials
+from gcloud import logging as cloud_logging
 from googleapiclient.discovery import build_from_document
 
 from artman.cli import main
 from artman.utils.logger import logger, output_logger
 
+
+MAX_ATTEMPTS = 3
+CLOUD_LOGGING_CLIENT = cloud_logging.Client()
 
 def run(queue_name):
     task_client = _create_tasks_client()
@@ -40,21 +45,30 @@ def _pull_and_execute_tasks(task_client, queue_name):
     tasks = pull_task_response.get('tasks', [])
     if not tasks:
         # Sleep for 30 seconds if there is no tasks returned.
-        logger.debug('There is no pending task. Sleep for 30 seconds.')
-        time.sleep(30)
+        logger.debug('There is no pending task. Sleep for 10 seconds.')
+        time.sleep(10)
     for task in tasks:
-        tmp_reporoot, artman_user_config = _prepare_dir()
+        task_id, tmp_root, artman_user_config, log_file_path = _prepare_dir()
+        log_file_handler = None
         try:
+            log_file_handler = _setup_logger(log_file_path)
             logger.info('Starting to execute task %s' % task)
+            if (int(task['taskStatus']['attemptDispatchCount']) > MAX_ATTEMPTS):
+                logger.info('Delete task which exceeds max attempts.')
+                _delete_task(task_client, task)
+                continue
             _execute_task(artman_user_config, task)
             _ack_task(task_client, task)
-            logger.info('Task execution finished for %s' % task)
-        except:
-            logger.error('Task execution failed for %s' % task)
+            logger.info('Task execution finished')
+        except Exception as e:
+            logger.error('Task execution failed with: %s' % e)
             _cancel_task_lease(task_client, task)
         finally:
-            logger.info('Cleanup tmp directory %s' % tmp_reporoot)
-            _cleanup_tmp_dir(tmp_reporoot)
+            logger.info('Cleanup tmp directory %s' % tmp_root)
+            # Use task id as log name
+            _write_to_cloud_logging(task_id, log_file_path)
+            log_file_handler.close()
+            _cleanup_tmp_dir(tmp_root)
 
 
 def _create_tasks_client():
@@ -87,12 +101,37 @@ def _ack_task(task_client, task):
 
 
 def _cancel_task_lease(task_client, task):
-    body = {'scheduleTime': task['scheduleTime'], "responseView": "FULL"}
+    body = {'scheduleTime': task['scheduleTime'], 'responseView': 'FULL'}
     response = task_client.projects().locations().queues().tasks().cancelLease(
         name=task['name'],
         body=body).execute()
     logger.info('Cancel task request returned %s' % response)
     return response
+
+
+def _delete_task(task_client, task):
+    response = task_client.projects().locations().queues().tasks().delete(
+        name=task['name']).execute()
+    logger.info('Delete task request returned %s' % response)
+    return response
+
+
+def _setup_logger(log_path):
+    """Setup logger with one-time logging FileHandler."""
+    logger = logging.getLogger('artman')
+    if logger.handlers:
+        logger.handlers.pop()
+    log_file_handler = logging.FileHandler(log_path)
+    logger.addHandler(log_file_handler)
+    return log_file_handler
+
+
+def _write_to_cloud_logging(log_id, log_file_path):
+    """Write log file content to cloud logging"""
+    cloud_logger = CLOUD_LOGGING_CLIENT.logger(log_id)
+    if log_file_path:
+        with open(log_file_path, 'r') as log_file:
+            cloud_logger.log_text(log_file.read())
 
 
 def _execute_task(artman_user_config, task):
@@ -114,7 +153,8 @@ def _prepare_dir(source_repo="https://github.com/googleapis/googleapis.git"):
     TODO(ethanbao): support loading more input files from heterogeneous data
     sources"""
 
-    repo_root = '/tmp/artman/%s' % str(uuid.uuid4())
+    task_id = str(uuid.uuid4())
+    repo_root = '/tmp/artman/%s' % task_id
     logger.info('Prepare a temporary root repo: %s' % repo_root)
     try:
         os.makedirs(repo_root)
@@ -138,7 +178,11 @@ def _prepare_dir(source_repo="https://github.com/googleapis/googleapis.git"):
             toolkit_home = os.environ.get('TOOLKIT_HOME')
             file_.write(u'  toolkit: %s \n' % toolkit_home)
         file_.write(u'publish: noop \n')
-    return repo_root, artman_user_config
+
+    log_path = os.path.join(repo_root, 'artman.log')
+    with io.open(log_path, 'w+') as file_:
+        file_.write(u'-------- Beginning of %s -----------\n' % task_id)
+    return task_id, repo_root, artman_user_config, log_path
 
 
 def _cleanup_tmp_dir(tmp_dir):

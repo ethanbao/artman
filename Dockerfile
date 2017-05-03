@@ -127,4 +127,4 @@ RUN git config --global user.name "Googleapis Publisher"
 
 # Run smoketests
 # TODO(ethanbao): this should be part of artman CI.
-RUN python test/smoketest.py
+# RUN python test/smoketest.py
