@@ -48,6 +48,7 @@ RUN pip3 install --upgrade pip \
   && pip3 install \
     # Ensure that grpcio matches requirements.txt
     grpcio==1.3.5 \
+    grpcio-tools==1.3.5 \
     protobuf==3.3.0
 
 # Install grpc_csharp_plubin
