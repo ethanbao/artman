@@ -68,8 +68,10 @@ def parse_github_credentials(config, argv_flags):
     }
 
 
-def parse_local_paths(user_config, flags):
-    """Parse all relevant local flags, given appropriate user config and flags.
+def parse_local_paths(user_config, googleapis_dir):
+    """Parse all relevant local flags, given appropriate user config and user.
+
+    TODO(ethanbao): Fix coment.
 
     Args:
         user_config (dict): The user config, usually ~/.artman/config.yaml
@@ -92,8 +94,8 @@ def parse_local_paths(user_config, flags):
     # Only googleapis can be set with flags (this allows a temporary pointer
     # to googleapis-private if the developer uses a different directory for
     # that).
-    if flags.googleapis:
-        local_paths['googleapis'] = flags.googleapis
+    if googleapis_dir:
+        local_paths['googleapis'] = googleapis_dir
 
     # Make all paths absolute, resolve reporoot, and expand the ~.
     for key, path in local_paths.items():
@@ -144,5 +146,3 @@ def select_git_repo(git_repos, target_repo):
         if repo.get('default', False):
             return repo
     return git_repos['staging']
-
-

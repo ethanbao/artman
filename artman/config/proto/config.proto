@@ -1,0 +1,286 @@
+syntax = "proto3";
+
+package googleapis.artman;
+
+
+// Artman config is used to generate API client artifacts. For each API, API
+// producer will write an artman config file in yaml format, fields of which
+// are defined in this proto file. With the artman yaml file in place, API
+// producer can generate and/or publish the specified artifacts with the
+// following command syntax:
+//
+//     artman --config <artman_config_yaml> [generate|publish] [--publish-target=<public_target_name>] <artifact_name>
+//   `--config` flag is optional if there is an `artman.yaml` file in the running directory.
+//
+// Below is an example of an artman config yaml using
+// [library-example](https://github.com/googleapis/googleapis/tree/master/google/example/library)
+// as example.
+//
+//     common:
+//       api_name: library_example
+//       api_version: v1
+//       organization_name: google-cloud
+//       src_proto_path:
+//       - ${GOOGLEAPIS}/google/example/library/v1
+//       proto_deps:
+//       - google-common-protos
+//       service_yaml: ${GOOGLEAPIS}/google/example/library/library_example.yaml
+//       gapic_yaml: ${GOOGLEAPIS}/google/example/library/v1/library_example_gapic.yaml
+//     artifacts:
+//     - name: java_gapic_library
+//       type: GAPIC
+//       language: java
+//       output_dir: ${REPOROOT}/output/java
+//       publish_targets:
+//       - name: google-cloud-java
+//         location: git@github.com:GoogleCloudPlatform/google-cloud-java.git
+//         paths:
+//         - dest: google-cloud-library-example
+//       - name: staging-github
+//         location: git@github.com:gogleapis/api-client-staging.git
+//         paths:
+//         - src: java/google-cloud-library-example
+//           dest: generated/java/gapic-google-cloud-library-example-v1
+//         - src: java/grpc-google-cloud-library-example-v1
+//           dest: generated/java/grpc-google-cloud-library-example-v1
+//         - src: java/proto-google-cloud-library-example-v1
+//           dest: generated/java/proto-google-cloud-library-example-v1
+//     - name: python_gapic_only_library
+//       type: GAPIC_ONLY
+//       language: python
+//       output_dir: ${REPOROOT}/output/python
+//       publish_targets:
+//       - name: staging-github
+//         location: git@github.com:gogleapis/api-client-staging.git
+//         paths:
+//         - src: gapic-google-cloud-library-example-v1
+//           dest: generated/python/gapic-google-cloud-library-example-v1
+//
+// With the artman config above, the following command will generate full GAPIC
+// java client library and send a PR to googleapis/api-client-staging repo.
+//
+//    artman -f <artman_config> --publish-target staging-github --github-username=<github username> --github-token=<github-token> java_gapic_library
+message Config {
+  // All configuration in common artifact will be used as the base for any
+  // real artifact targets, which can be overridden. Normally, the following
+  // configs are shared among all artifacts:
+  //
+  // * api_name
+  // * api_version
+  // * organization_name
+  // * src_proto_paths
+  // * dep_proto_paths
+  // * service_yaml
+  // * gapic_yaml
+  //
+  Artifact common = 1;
+
+  // List of the artifacts that can be generated using this artman config file.
+  // The `name` field in each artifacts is required and must be unique.
+  // Each artifact must include the following configuration after merging with
+  // the common config:
+  //
+  // * api_name
+  // * api_version
+  // * organization_name
+  // * src_proto_paths
+  // * dep_proto_paths
+  // * service_yaml
+  // * gapic_yaml
+  // * type
+  // * language (not needed for GAPIC_CONFIG generation)
+  // * output_dir
+  //
+  repeated Artifact artifacts = 2;
+}
+
+message Artifact {
+  // The name of the artifact. It can be any meaningful value to uniquely
+  // specify an artifact target in this config file (e.g. "gapic-java").
+  // This field is required in each individual artifact configuration, and is
+  // invalid when specifying the common artifact config.
+  string name = 16;
+
+  // This field and api_version below controls the output directory of the
+  // generated artifacts, as well as some fields in the generated package
+  // metadata fiel (e.g. setup.py for Python).
+  string api_name = 1;
+
+  // Read comment of api_name field.
+  string api_version = 2;
+
+  // Organization name
+  // TODO(cbao): Figure out impact of this field.
+  string organization_name = 3;
+
+
+  enum ReleaseLevel {
+    RELEAE_LEVEL_UNSPECIFIED = 0;
+    GA = 1;
+    BETA = 2;
+    ALPHA = 3;
+  }
+  // Release level for the generated artifacts. The common values are Alpha,
+  // Beta, GA. Depending on its value, the library documentation will prints things
+  // like beta warning. Plus, it controls the development status in the package
+  // metadata file (e.g. setup.py for Python).
+  ReleaseLevel release_level = 4;
+
+  // The list of directory paths where your API proto(s) lives. Do not list
+  // the dir path to the protos that your API depends on. Instead, use
+  // dep_proto_paths to list dependencies.
+  repeated string src_proto_paths = 5;
+
+
+  // Proto dependency used by this API. Currently only the language-agnostic field
+  // `name` is needed to specify a proto dependency. And it might eventually include
+  // additional optional fields in the future.
+  message ProtoDependency {
+  // Below are the commonly-used values:
+  //
+  // * google-common-protos
+  // * google-iam-v1
+  //
+  // This field also controls the dependency list in the package metadata field.
+  // For example, grpc-google-iam-v1 maven package will be included as a Java
+  // dependency when iam proto path is specified.
+  //
+  // google-common-protos package include proto elements generated from protos
+  // under the following proto paths:
+  //
+  // * ${GOOGLEAPIS}/google/api (excluding servicemanagement and servicecontrol)
+  // * ${GOOGLEAPIS}/google/cloud/audit
+  // * ${GOOGLEAPIS}/google/logging/type
+  // * ${GOOGLEAPIS}/google/longrunning
+  // * ${GOOGLEAPIS}/google/rpc
+  // * ${GOOGLEAPIS}/google/type
+  //
+    string name = 1;
+  }
+  // The list of directory paths where the protos that your API depends on
+  // lives.
+  repeated ProtoDependency proto_deps = 6;
+
+  // Path to your service config yaml. See [pubsub.yaml](https://github.com/googleapis/googleapis/blob/master/google/pubsub/pubsub.yaml)
+  // as an example. See [service.proto](https://github.com/googleapis/googleapis/blob/master/google/api/service.proto)
+  // for a full service config spec.
+  //
+  // Note: Not all configs in the full service config spec will be needed for
+  // client library generation.
+  string service_yaml = 7;
+
+  // Path to your GAPIC config yaml. See [pubsub_gapic.yaml](https://github.com/googleapis/googleapis/blob/master/google/pubsub/v1/pubsub_gapic.yaml)
+  // as an example. See [config.proto](https://github.com/googleapis/toolkit/blob/master/src/main/proto/com/google/api/codegen/config.proto)
+  // for a full GAPIC config spec.
+  string gapic_yaml = 8;
+
+  // This is an optional field to specify the root proto_path. It will be
+  // passed to protoc via --proto_path flag. The default value is
+  // "${GOOGLEAPIS}".
+  repeated string import_proto_path = 9;
+
+  // ?? Merge type with language and end up with GAPIC_JAVA, ....?
+  enum Type {
+    // This artifact type will generate a self-contained library that contains
+    // GAPIC layer, GRPC stub and protoc-generated model classes.
+    GAPIC = 0;
+
+    // This artifact type will generate a base GAPIC config yaml that an API
+    // producer can start with.
+    GAPIC_CONFIG = 1;
+
+    // This artifact type will only generate a GRPC library without GAPIC layer.
+    GRPC = 2;
+
+    // This artifact type is rarely used for generating a shared GRPC library
+    // package that doesn't include any API surface part.
+    GRPC_COMMON = 3;
+
+    // This artifact type will only generate a GAPIC library. Use this type along
+    // with GRPC type if you plan to publish GRPC package and GAPIC package
+    // separately to package managers. This is a legacy type, and might be phased
+    // out eventually.
+    GAPIC_ONLY = 99;
+  }
+
+  // Required
+  Type type = 10;
+
+  // More valid values might be supported in the future, but might only work for
+  // GRPC client (e.g. cpp, objc).
+  enum Language{
+    LANGUAGE_UNSPECIFIED = 0;
+    JAVA = 1;
+    PYTHON = 2;
+    NODEJS = 3;
+    GO = 4;
+    PHP = 5;
+    CSHARP = 6;
+    RUBY =7;
+  }
+  // Must be specified when generating client libraries.
+  // Note: there is no need to specify language when generating a base GAPIC
+  // config file.
+  Language language = 11;
+
+
+  // Store metadata related to generated package. Fields in this config is not stable
+  // and therefore subject to future changes.
+  message PackageVersion {
+      // The package version of the generated library (can be either GAPIC or GRPC)..
+      string version = 1;
+
+      // The lower bound of the GRPC dependency of the generated GAPIC library.
+      string grpc_dep_lower_bound = 2;
+
+      // The upper bound of the GRPC dependency for the generated GAPIC library.
+      string grpc_dep_upper_bound = 3;
+  }
+
+  PackageVersion package_version = 13;
+
+  message PublishTarget {
+    // Each publish target must have a name that is unique to the artifact, and
+    // must be specified through the artman flag during publishing.
+    string name = 1;
+
+    // Specify the location (e.g. a github repo in the form of
+    // git@github.com:googleapis/api-client-staging.git)
+    string location = 2;
+
+    enum Type {
+      PUBLISHING_TYPE_UNSPECIFIED = 0;  // Default value
+
+      GITHUB = 1;
+
+      // TODO(cbao): More types will be formally supported (e.g. Maven, Pypi,
+      // Composer, Google Cloud Storage, etc).
+    }
+    Type type = 3;
+
+
+    // Specify directory mapping so that atman will do reorganize the output folder
+    // before the publishing.
+    message DirectoryMapping {
+      // The src directory relative to `output_dir`. It defaults to `.`.
+      string src = 1;
+
+      // The dest directory relative to the root directory of the specified
+      // github repo.
+      string dest = 2;
+    }
+
+    // During publishing, you can adjust the layout of the generated output
+    // before publishing them. This can be used to move the output subdirectory,
+    // or filter out some subdirectory.
+    repeated DirectoryMapping directory_mappings = 4;
+  }
+
+  // One can choose to publish artifact to the specified location by listing the
+  // publish targets in this field. `name` field is required for each publish
+  // target. With publish_targets listed here, artman user can run
+  // command to publish the artifact to a specified location.
+  //
+  //    artman -f <artman_config> --publish_target <publich_target_name> <artifact_name>
+  repeated PublishTarget publish_targets = 15;
+}

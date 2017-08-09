@@ -11,12 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import absolute_import, unicode_literals
-
-from artman.cli import configure
-from artman.cli import main
-from artman.cli import main2
-from artman.cli import support
-
-__all__ = ('configure', 'main', 'main2' 'support')
