@@ -195,7 +195,7 @@ RUN git clone https://github.com/googleapis/googleapis \
   && rm -rf /googleapis/.git/
 RUN git clone https://github.com/googleapis/toolkit \
   && cd toolkit/ \
-  && git checkout 57cd7c9aeebb8a15fafde10cc756cb49f714009b \
+  && git checkout 9dc8b490cde66255599b6c16b9e703de7f0e0881 \
   && cd .. \
   && rm -rf /toolkit/.git/
 ENV TOOLKIT_HOME /toolkit

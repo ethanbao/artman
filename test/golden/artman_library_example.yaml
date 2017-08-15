@@ -24,7 +24,11 @@ java:
 nodejs:
   gapic_code_dir: ${REPOROOT}/output/legacy/js/library_example-v1
 php:
+<<<<<<< HEAD
   gapic_code_dir: ${REPOROOT}/output/legacy/google-cloud-library_example-v1
+=======
+  gapic_code_dir: ${REPOROOT}/output/google-php-cloud-library_example-v1
+>>>>>>> upstream/master
 python:
   gapic_code_dir: ${REPOROOT}/output/legacy/gapic-google-cloud-library_example-v1
 ruby:
