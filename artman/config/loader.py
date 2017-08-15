@@ -25,30 +25,29 @@ from google.protobuf import json_format
 from artman.config.proto import config_pb2
 
 
-def read_artifact_config(artman_config_path, flags):
-    artman_config = _read_artman_config(artman_config_path, flags)
+def load_artifact_config(artman_config_path, artifact_name, input_dir):
+    artman_config = _read_artman_config(artman_config_path)
     artifact_config = config_pb2.Artifact()
     artifact_config.CopyFrom(artman_config.common)
     valid_values = []
     for artifact in artman_config.artifacts:
         valid_values.append(artifact.name)
-        if artifact.name == flags.artifact_id:
+        if artifact.name == artifact_name:
             artifact_config.MergeFrom(artifact)
             _validate_artifact_config(artifact_config)
-            return _normalize_artifact_config(artifact_config, flags)
+            return _normalize_artifact_config(artifact_config, input_dir)
 
-    raise KeyError(
+    raise ValueError(
         'No artifact with `%s` configured in artman yaml. Valie values are %s'
-        % (flags.artifact_id, valid_values))
+        % (artifact_name, valid_values))
 
 
-def _read_artman_config(artman_yaml_path, flags):
+def _read_artman_config(artman_yaml_path):
     """Parse and return artman config after validation and normalization."""
     artman_config = _parse(artman_yaml_path)
     validation_result = _validate_artman_config(artman_config)
-    if (validation_result):
-        print(validation_result)
-        sys.exit(96)
+    if validation_result:
+        raise ValueError(validation_result)
     else:
         return artman_config
 
@@ -91,7 +90,7 @@ def _validate_artifact_config(artifact_config):
     # and the file or folder must exist.
     pass
 
-def _normalize_artifact_config(artifact_config, flags):
+def _normalize_artifact_config(artifact_config, input_dir):
     """Normalize the config protobuf based on flags passed from command line.
 
     Note: we are not normalizing output folders because they are no longer
@@ -101,20 +100,20 @@ def _normalize_artifact_config(artifact_config, flags):
     """
     # Normalize the input file or folder by prefixing with input_dir if necessary.
     if not os.path.isabs(artifact_config.service_yaml):
-        artifact_config.service_yaml = os.path.join(flags.input_dir, artifact_config.service_yaml)
+        artifact_config.service_yaml = os.path.join(input_dir, artifact_config.service_yaml)
 
     if not os.path.isabs(artifact_config.gapic_yaml):
-        artifact_config.gapic_yaml = os.path.join(flags.input_dir, artifact_config.gapic_yaml)
+        artifact_config.gapic_yaml = os.path.join(input_dir, artifact_config.gapic_yaml)
 
     if not artifact_config.import_proto_path:
-        artifact_config.import_proto_path[:] = [flags.input_dir]
+        artifact_config.import_proto_path[:] = [input_dir]
     else:
         normalized_import_proto_path = []
         for import_proto_path in artifact_config.import_proto_path:
             if os.path.isabs(import_proto_path):
                 normalized_import_proto_path.append(import_proto_path)
             else:
-                normalized_import_proto_path.append(os.path.join(flags.input_dir, import_proto_path))
+                normalized_import_proto_path.append(os.path.join(input_dir, import_proto_path))
 
         artifact_config.import_proto_path[:] = normalized_import_proto_path
 
@@ -123,7 +122,7 @@ def _normalize_artifact_config(artifact_config, flags):
         if os.path.isabs(src_proto_path):
             normalized_src_proto_paths.append(src_proto_path)
         else:
-            normalized_src_proto_paths.append(os.path.join(flags.input_dir, src_proto_path))
+            normalized_src_proto_paths.append(os.path.join(input_dir, src_proto_path))
     artifact_config.src_proto_paths[:] = normalized_src_proto_paths
 
     return artifact_config

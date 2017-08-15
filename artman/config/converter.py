@@ -14,13 +14,15 @@
 
 """Artman config converter.
 
-TODO(ethanbao): rename to config_utils.py and move to utils dir.
+It converts the new artman config file into the legacy format so that current
+artman code can work with both legacy and new artman config file. We will phase
+out legacy artman config yamls and make artman code read the configuration from
+the new artman config. Once that is done, this converter can be removed.
 """
 
 from __future__ import absolute_import
 import json
 import os
-import pprint  # Remove after manual testing
 import sys
 import yaml
 
@@ -34,12 +36,17 @@ def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
   common['organization_name'] = artifact_config.organization_name
   common['service_yaml'] = [artifact_config.service_yaml]
   common['gapic_api_yaml'] = [artifact_config.gapic_yaml]
-  common['src_proto_path'] = _repeated_proto3_field_to_list(artifact_config.src_proto_paths)
-  common['import_proto_path'] = _repeated_proto3_field_to_list(artifact_config.import_proto_path)
+  common['src_proto_path'] = _repeated_proto3_field_to_list(
+      artifact_config.src_proto_paths)
+  common['import_proto_path'] = _repeated_proto3_field_to_list(
+      artifact_config.import_proto_path)
   common['output_dir'] = output_dir
 
-  legacy_proto_deps, desc_proto_paths = _proto_deps_to_legacy_configs(artifact_config.proto_deps)
+  legacy_proto_deps, legacy_test_proto_deps, desc_proto_paths = (
+      _proto_deps_to_legacy_configs(artifact_config.proto_deps,
+                                    artifact_config.test_proto_deps))
   common['proto_deps'] = legacy_proto_deps
+  common['test_proto_deps'] = legacy_test_proto_deps
   common['desc_proto_path'] = desc_proto_paths
 
 
@@ -54,22 +61,30 @@ def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
 
   language = config_pb2.Artifact.Language.Name(artifact_config.language).lower()
   language_config_dict = {}
-  rel_gapic_code_dir = _calculate_rel_gapic_output_dir(language, artifact_config.api_name, artifact_config.api_version)
-  language_config_dict['gapic_code_dir'] = os.path.join(output_dir, rel_gapic_code_dir)
-  language_config_dict['git_repos'] = _calculate_git_repos_config(artifact_config, output_dir)
-  language_config_dict['release_level'] = config_pb2.Artifact.ReleaseLevel.Name(artifact_config.release_level).lower()
-  if artifact_config.package_version:
+  rel_gapic_code_dir = _calculate_rel_gapic_output_dir(
+      language, artifact_config.api_name, artifact_config.api_version)
+  language_config_dict['gapic_code_dir'] = os.path.join(
+      output_dir, rel_gapic_code_dir)
+  language_config_dict['git_repos'] = _calculate_git_repos_config(
+      artifact_config, output_dir)
+  language_config_dict['release_level'] = config_pb2.Artifact.ReleaseLevel.Name(
+      artifact_config.release_level).lower()
+
+  # Convert package version configuration.
+  package_version = artifact_config.package_version
+  if package_version:
       package_version_dict = {}
       if artifact_config.package_version.grpc_dep_lower_bound:
-          package_version_dict['lower'] = artifact_config.package_version.grpc_dep_lower_bound
+          package_version_dict['lower'] = package_version.grpc_dep_lower_bound
       if artifact_config.package_version.grpc_dep_upper_bound:
-          package_version_dict['upper'] = artifact_config.package_version.grpc_dep_upper_bound
-      language_config_dict['generated_package_version'] = package_version_dict
+          package_version_dict['upper'] = package_version.grpc_dep_upper_bound
+      if package_version_dict.keys():
+          language_config_dict['generated_package_version'] = (
+              package_version_dict)
 
   result = {}
   result['common'] = common
   result[language] = language_config_dict
-  pprint.pprint(result)
   return result
 
 def _repeated_proto3_field_to_list(field):
@@ -84,14 +99,19 @@ def _repeated_proto3_field_to_list(field):
         result.append(item)
     return result
 
-def _proto_deps_to_legacy_configs(proto_deps):
-    legacy_proto_deps, desc_proto_paths = [], []
+def _proto_deps_to_legacy_configs(proto_deps, test_proto_deps):
+    legacy_proto_deps, legacy_test_proto_deps, desc_proto_paths = [], [], []
     for dep in proto_deps:
         legacy_proto_deps.append(dep.name)
-        # TODO(ethanbao): This is way too magical, and need to figure out a better way
+        # TODO(ethanbao): This is way too magical, and need to figure out a
+        # better way one option is to formalize the ProtoDependency with more
+        # fields and make current gapic/packaging/dependencies.yaml into that
+        # ProtoDependency type, which will include the real file path.
         if dep.name == 'google-iam-v1':
             desc_proto_paths.append('${GOOGLEAPIS}/google/iam/v1')
-    return legacy_proto_deps, desc_proto_paths
+    for test_dep in test_proto_deps:
+        legacy_test_proto_deps.append(test_dep.name)
+    return legacy_proto_deps, legacy_test_proto_deps, desc_proto_paths
 
 
 def _calculate_rel_gapic_output_dir(language, api_name, api_version):
@@ -126,7 +146,14 @@ def _calculate_git_repos_config(artifact_config, output_dir):
         item['location'] = target.location
         paths = []
         for map_entry in target.directory_mappings:
-            paths.append({'src': os.path.join(output_dir,map_entry.src) if map_entry.src else '.', 'dest': map_entry.dest})
+            path = {}
+            if map_entry.src:
+                path['src'] = os.path.join(output_dir,map_entry.src)
+            if map_entry.dest:
+                path['dest'] = map_entry.dest
+            if map_entry.name:
+                path['artifact'] = map_entry.name
+            paths.append(path)
         item['paths'] = paths
         result[target.name] = item
     return result

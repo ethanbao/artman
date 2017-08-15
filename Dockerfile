@@ -219,7 +219,6 @@ RUN git config --global user.email googleapis-publisher@google.com \
 # TODO (lukesneeringer): Fix this.
 RUN mkdir -p /root/
 ADD artman-user-config-in-docker.yaml /home/.artman/config.yaml
-RUN chmod a+rw /home/.artman/config.yaml
 
 # For backward-compatibility, remove once existing caller upgrades.
 ADD artman-user-config-in-docker.yaml /root/.artman/config.yaml
