@@ -49,6 +49,7 @@
 /google-php-cloud-library_example-v1/proto/src/Google/Example/Library/V1/Shelf.php
 /google-php-cloud-library_example-v1/proto/src/Google/Example/Library/V1/UpdateBookRequest.php
 /google-php-cloud-library_example-v1/src/Example/Library/V1/LibraryServiceClient.php
+/google-php-cloud-library_example-v1/src/Example/Library/V1/LibraryServiceGapicClient.php
 /google-php-cloud-library_example-v1/src/Example/Library/V1/resources/library_service_client_config.json
 /google-php-cloud-library_example-v1/tests/unit/Example/Library/V1/LibraryServiceClientTest.php
 /google-php-cloud-library_example-v1/tests/unit/Example/Library/V1/MockLibraryServiceImpl.php
@@ -68,6 +69,7 @@
 /google-cloud-ruby/google-cloud-library_example/lib/google/cloud/example/library/v1.rb
 /google-cloud-ruby/google-cloud-library_example/lib/google/cloud/example/library/v1/library_service_client.rb
 /google-cloud-ruby/google-cloud-library_example/lib/google/cloud/example/library/v1/library_service_client_config.json
+/google-cloud-ruby/google-cloud-library_example/lib/google/cloud/example/library/v1/doc/google/example/library/v1/library.rb
 /google-cloud-ruby/google-cloud-library_example/lib/google/example/library/v1/library_pb.rb
 /google-cloud-ruby/google-cloud-library_example/lib/google/example/library/v1/library_services_pb.rb
 /google-cloud-ruby/google-cloud-library_example/test/google/cloud/example/library/v1/library_service_client_test.rb
