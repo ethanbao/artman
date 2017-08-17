@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import pprint
 import unittest
 import yaml
 
@@ -35,14 +34,14 @@ class ConverterTest(unittest.TestCase):
 
     def _test(self, artman_yaml, artifact_name, expected_legacy_config):
         artifact_config = loader.load_artifact_config(os.path.join(
-            self.TESTDATA, artman_yaml),artifact_name, '/tmp/input')
+            self.TESTDATA, artman_yaml), artifact_name, '/tmp/input')
         actual_legacy_config_dict = converter.convert_to_legacy_config_dict(
             artifact_config, '/tmp/input', '/tmp/output')
-        with open(os.path.join(self.TESTDATA, expected_legacy_config), 'r') as yaml_file:
+        with open(os.path.join(
+                self.TESTDATA, expected_legacy_config), 'r') as yaml_file:
             expected_legacy_config_dict = yaml.load(yaml_file)
             self.assertDictEqual(
                 expected_legacy_config_dict, actual_legacy_config_dict)
-
 
 
 if __name__ == '__main__':

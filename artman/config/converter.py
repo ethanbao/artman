@@ -21,71 +21,70 @@ the new artman config. Once that is done, this converter can be removed.
 """
 
 from __future__ import absolute_import
-import json
 import os
-import sys
-import yaml
 
 from artman.config.proto import config_pb2
 
 
 def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
-  common = {}
-  common['api_name'] = artifact_config.api_name
-  common['api_version'] = artifact_config.api_version
-  common['organization_name'] = artifact_config.organization_name
-  common['service_yaml'] = [artifact_config.service_yaml]
-  common['gapic_api_yaml'] = [artifact_config.gapic_yaml]
-  common['src_proto_path'] = _repeated_proto3_field_to_list(
-      artifact_config.src_proto_paths)
-  common['import_proto_path'] = _repeated_proto3_field_to_list(
-      artifact_config.import_proto_path)
-  common['output_dir'] = output_dir
+    common = {}
+    common['api_name'] = artifact_config.api_name
+    common['api_version'] = artifact_config.api_version
+    common['organization_name'] = artifact_config.organization_name
+    common['service_yaml'] = [artifact_config.service_yaml]
+    common['gapic_api_yaml'] = [artifact_config.gapic_yaml]
+    common['src_proto_path'] = _repeated_proto3_field_to_list(
+        artifact_config.src_proto_paths)
+    common['import_proto_path'] = _repeated_proto3_field_to_list(
+        artifact_config.import_proto_path)
+    common['output_dir'] = output_dir
 
-  legacy_proto_deps, legacy_test_proto_deps, desc_proto_paths = (
-      _proto_deps_to_legacy_configs(artifact_config.proto_deps,
-                                    artifact_config.test_proto_deps))
-  common['proto_deps'] = legacy_proto_deps
-  common['test_proto_deps'] = legacy_test_proto_deps
-  common['desc_proto_path'] = desc_proto_paths
+    legacy_proto_deps, legacy_test_proto_deps, desc_proto_paths = (
+        _proto_deps_to_legacy_configs(artifact_config.proto_deps,
+                                      artifact_config.test_proto_deps))
+    common['proto_deps'] = legacy_proto_deps
+    common['test_proto_deps'] = legacy_test_proto_deps
+    common['desc_proto_path'] = desc_proto_paths
 
+    package_type = 'grpc_client'  # default package_type
+    packaging = 'single-artifact'  # default packaing
+    if artifact_config.type == config_pb2.Artifact.GRPC_COMMON:
+        package_type = 'grpc_common'
+    elif artifact_config.type == config_pb2.Artifact.GAPIC_ONLY:
+        packaging = 'google-cloud'
+    common['packaging'] = packaging
+    common['package_type'] = package_type
 
-  package_type = 'grpc_client'  # default package_type
-  packaging = 'single-artifact'  # default packaing
-  if artifact_config.type == config_pb2.Artifact.GRPC_COMMON:
-      package_type = 'grpc_common'
-  elif artifact_config.type == config_pb2.Artifact.GAPIC_ONLY:
-      packaging = 'google-cloud'
-  common['packaging'] = packaging
-  common['package_type'] = package_type
+    language = config_pb2.Artifact.Language.Name(
+        artifact_config.language).lower()
+    language_config_dict = {}
+    rel_gapic_code_dir = _calculate_rel_gapic_output_dir(
+        language, artifact_config.api_name, artifact_config.api_version)
+    language_config_dict['gapic_code_dir'] = os.path.join(
+        output_dir, rel_gapic_code_dir)
+    language_config_dict['git_repos'] = _calculate_git_repos_config(
+        artifact_config, output_dir)
+    language_config_dict['release_level'] = (
+        config_pb2.Artifact.ReleaseLevel.Name(
+            artifact_config.release_level).lower())
 
-  language = config_pb2.Artifact.Language.Name(artifact_config.language).lower()
-  language_config_dict = {}
-  rel_gapic_code_dir = _calculate_rel_gapic_output_dir(
-      language, artifact_config.api_name, artifact_config.api_version)
-  language_config_dict['gapic_code_dir'] = os.path.join(
-      output_dir, rel_gapic_code_dir)
-  language_config_dict['git_repos'] = _calculate_git_repos_config(
-      artifact_config, output_dir)
-  language_config_dict['release_level'] = config_pb2.Artifact.ReleaseLevel.Name(
-      artifact_config.release_level).lower()
+    # Convert package version configuration.
+    pv = artifact_config.package_version
+    if pv:
+        package_version_dict = {}
+        if pv.grpc_dep_lower_bound:
+            package_version_dict['lower'] = pv.grpc_dep_lower_bound
+        if pv.grpc_dep_upper_bound:
+            package_version_dict['upper'] = pv.grpc_dep_upper_bound
+        if package_version_dict.keys():
+            language_config_dict['generated_package_version'] = (
+                package_version_dict)
 
-  # Convert package version configuration.
-  package_version = artifact_config.package_version
-  if package_version:
-      package_version_dict = {}
-      if artifact_config.package_version.grpc_dep_lower_bound:
-          package_version_dict['lower'] = package_version.grpc_dep_lower_bound
-      if artifact_config.package_version.grpc_dep_upper_bound:
-          package_version_dict['upper'] = package_version.grpc_dep_upper_bound
-      if package_version_dict.keys():
-          language_config_dict['generated_package_version'] = (
-              package_version_dict)
+    result = {}
+    result['common'] = common
+    result[language] = language_config_dict
+    return result
 
-  result = {}
-  result['common'] = common
-  result[language] = language_config_dict
-  return result
 
 def _repeated_proto3_field_to_list(field):
     """Convert a proto3 repeated field to list.
@@ -98,6 +97,7 @@ def _repeated_proto3_field_to_list(field):
     for item in field:
         result.append(item)
     return result
+
 
 def _proto_deps_to_legacy_configs(proto_deps, test_proto_deps):
     legacy_proto_deps, legacy_test_proto_deps, desc_proto_paths = [], [], []
@@ -137,6 +137,7 @@ def _calculate_rel_gapic_output_dir(language, api_name, api_version):
 
     raise ValueError('Language `%s` is not currently supported.' % language)
 
+
 def _calculate_git_repos_config(artifact_config, output_dir):
     result = {}
     for target in artifact_config.publish_targets:
@@ -148,7 +149,7 @@ def _calculate_git_repos_config(artifact_config, output_dir):
         for map_entry in target.directory_mappings:
             path = {}
             if map_entry.src:
-                path['src'] = os.path.join(output_dir,map_entry.src)
+                path['src'] = os.path.join(output_dir, map_entry.src)
             if map_entry.dest:
                 path['dest'] = map_entry.dest
             if map_entry.name:

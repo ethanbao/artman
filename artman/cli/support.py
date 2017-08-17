@@ -17,8 +17,6 @@ import os
 import subprocess
 import sys
 
-from ruamel import yaml
-
 from artman.utils.logger import logger
 
 
@@ -150,26 +148,26 @@ def select_git_repo(git_repos, target_repo):
 
 
 def check_docker_requirements(docker_image):
-  """Checks whether all docker-related components have been installed."""
+    """Checks whether all docker-related components have been installed."""
 
-  try:
-    subprocess.check_output(['docker', '--version'])
-  except OSError:
-    logger.error(
-        'Docker not found on path or is not installed. Refert to '
-        'https://docs.docker.com/engine/installation about how to install '
-        'Docker on your local machine.')
-    sys.exit(1)
+    try:
+        subprocess.check_output(['docker', '--version'])
+    except OSError:
+        logger.error(
+            'Docker not found on path or is not installed. Refert to '
+            'https://docs.docker.com/engine/installation about how to install '
+            'Docker on your local machine.')
+        sys.exit(1)
 
-  try:
-    output = subprocess.check_output(
-        ['docker', 'images', '-q', docker_image])
-    if not output:
-      logger.error(
-          'Cannot find artman Docker image. Run `docker pull %s` to pull the '
-          'image.' % docker_image)
-      sys.exit(1)
-  except OSError:
-    logger.error('Docker image check failed. Please file an issue at '
-                 'https://github.com/googleapis/artman/issues.')
-    sys.exit(1)
+    try:
+        output = subprocess.check_output(
+            ['docker', 'images', '-q', docker_image])
+        if not output:
+            logger.error(
+                'Cannot find artman Docker image. Run `docker pull %s` to '
+                'pull the image.' % docker_image)
+            sys.exit(1)
+    except OSError:
+        logger.error('Docker image check failed. Please file an issue at '
+                    'https://github.com/googleapis/artman/issues.')
+        sys.exit(1)

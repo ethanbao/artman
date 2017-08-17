@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Artman config reader that parse, validate and normalize the artman config."""
+"""Artman config reader that parses, validates and normalizes the passed artman
+config.
+"""
 
 from __future__ import absolute_import
 import json
 import os
-import sys
 import yaml
 
 from google.protobuf import json_format
@@ -75,20 +76,24 @@ def _validate_artman_config(config_pb):
     for artifact in config_pb.artifacts:
         targets = set()
         if artifact.name in artifacts:
-            return 'artifact `%s` has been configured twice, please rename.' % artifact.name
+            return ('artifact `%s` has been configured twice, please rename.' %
+                    artifact.name)
         artifacts.add(artifact.name)
         for target in artifact.publish_targets:
             if target.name in targets:
-                return 'publish target `%s` in artifact `%s` has been configured twice, please rename.' % (target.name, artifact.name)
+                return ('publish target `%s` in artifact `%s` has been '
+                        'configured twice, please rename.' %
+                        (target.name, artifact.name))
             targets.add(target.name)
-
 
     return None
 
+
 def _validate_artifact_config(artifact_config):
-    # TODO(ethanbao) Validate input files, in which we disallow ${GOOGLEAPIS} syntax
-    # and the file or folder must exist.
+    # TODO(ethanbao) Validate input files, in which we disallow ${GOOGLEAPIS}
+    # syntax and the file or folder must exist.
     pass
+
 
 def _normalize_artifact_config(artifact_config, input_dir):
     """Normalize the config protobuf based on flags passed from command line.
@@ -98,12 +103,14 @@ def _normalize_artifact_config(artifact_config, input_dir):
     Once the individual GAPIC output folder becomes configurable, that folder
     name calculation logic should be moved from converter into this method.
     """
-    # Normalize the input file or folder by prefixing with input_dir if necessary.
+    # Normalize the input file or folder by prefixing with input_dir if needed.
     if not os.path.isabs(artifact_config.service_yaml):
-        artifact_config.service_yaml = os.path.join(input_dir, artifact_config.service_yaml)
+        artifact_config.service_yaml = os.path.join(
+            input_dir, artifact_config.service_yaml)
 
     if not os.path.isabs(artifact_config.gapic_yaml):
-        artifact_config.gapic_yaml = os.path.join(input_dir, artifact_config.gapic_yaml)
+        artifact_config.gapic_yaml = os.path.join(
+            input_dir, artifact_config.gapic_yaml)
 
     if not artifact_config.import_proto_path:
         artifact_config.import_proto_path[:] = [input_dir]
@@ -113,7 +120,8 @@ def _normalize_artifact_config(artifact_config, input_dir):
             if os.path.isabs(import_proto_path):
                 normalized_import_proto_path.append(import_proto_path)
             else:
-                normalized_import_proto_path.append(os.path.join(input_dir, import_proto_path))
+                normalized_import_proto_path.append(
+                    os.path.join(input_dir, import_proto_path))
 
         artifact_config.import_proto_path[:] = normalized_import_proto_path
 
@@ -122,7 +130,8 @@ def _normalize_artifact_config(artifact_config, input_dir):
         if os.path.isabs(src_proto_path):
             normalized_src_proto_paths.append(src_proto_path)
         else:
-            normalized_src_proto_paths.append(os.path.join(input_dir, src_proto_path))
+            normalized_src_proto_paths.append(
+                os.path.join(input_dir, src_proto_path))
     artifact_config.src_proto_paths[:] = normalized_src_proto_paths
 
     return artifact_config
