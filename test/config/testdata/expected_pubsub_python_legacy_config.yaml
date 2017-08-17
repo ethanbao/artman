@@ -21,7 +21,7 @@ common:
   test_proto_deps:
   - google-iam-v1
 python:
-  gapic_code_dir: /tmp/output/gapic-google-cloud-pubsub-v1
+  gapic_code_dir: /tmp/output/python/pubsub-v1
   generated_package_version:
     lower: 0.90.3
     upper: 0.91dev

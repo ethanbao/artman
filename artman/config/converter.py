@@ -118,7 +118,7 @@ def _calculate_rel_gapic_output_dir(language, api_name, api_version):
     """Calculate the gapic output dir relative to the specified output_dir.
 
     TODO(ethanbao): This part can become part of normalization step when gapic
-    ouput dir becomes configurable.
+    ouput dir becomes configurable. This logic doesn't work for non-cloud.
     """
     if language == 'java':
         return 'java/google-cloud-%s' % api_name
@@ -131,9 +131,9 @@ def _calculate_rel_gapic_output_dir(language, api_name, api_version):
     elif language == 'php':
         return 'google-php-cloud-%s-%s' % (api_name, api_version)
     elif language == 'python':
-        return 'gapic-google-cloud-%s-%s' % (api_name, api_version)
+        return 'python/%s-%s' % (api_name, api_version)
     elif language == 'ruby':
-        return 'google-cloud-ruby/google-cloud-%s' % api_name
+        return 'ruby/google-cloud-ruby/google-cloud-%s' % api_name
 
     raise ValueError('Language `%s` is not currently supported.' % language)
 

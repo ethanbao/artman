@@ -15,8 +15,9 @@
 
     artman [Options] generate|publish <artifact_name>
 
-Note: Only local execution is supported as this moment. The CLI syntax is beta,
-and might have changes in the future.
+.. note::
+    Only local execution is supported at this moment. The CLI syntax is
+    beta, and might have changes in the future.
 """
 
 from __future__ import absolute_import
@@ -43,14 +44,7 @@ ARTMAN_DOCKER_IMAGE = 'googleapis/artman:0.4.12'
 
 
 def main(*args):
-    """Main method of artman.
-
-    Note: artman currently won't work if the input directory doesn't contain
-    some shared configuration file (e.g. gapic/packaging/dependencies.yaml).
-    This will make artman less useful for non-Google APIs.
-    TODO(ethanbao): Fix that by checking the input directory and downloading
-    the common yamls if necessary.
-    """
+    """Main method of artman."""
     # If no arguments are sent, we are using the entry point; derive
     # them from sys.argv.
     if not args:
@@ -71,6 +65,11 @@ def main(*args):
         _chown_for_artman_output(os.path.abspath(flags.output_dir))
     else:
         support.check_docker_requirements(flags.image)
+        # Note: artman currently won't work if input directory doesn't contain
+        # shared configuration files (e.g. gapic/packaging/dependencies.yaml).
+        # This will make artman less useful for non-Google APIs.
+        # TODO(ethanbao): Fix that by checking the input directory and
+        # pulling the shared configuration files if necessary.
         logger.info('Running artman command in a Docker instance.')
         _run_artman_in_docker(flags)
 
@@ -168,12 +167,12 @@ def parse_args(*args):
         'publishing the artifact to github, but can come from the user '
         'config file.', )
     parser_publish.add_argument(
-        '--dryrun',
-        dest='dryrun',
+        '--dry-run',
+        dest='dry_run',
         action='store_true',
         help='[Optional] When specified, artman will skip the remote '
         'publishing step.', )
-    parser_publish.set_defaults(dryrun=False)
+    parser_publish.set_defaults(dry_run=False)
 
     return parser.parse_args(args=args)
 
@@ -245,12 +244,12 @@ def normalize_flags(flags, user_config):
             artman_config_path, flags.artifact_name, flags.input_dir)
     except ValueError as ve:
         logger.error('Artifact config loading failed with `%s`' % ve)
+        sys.exit(96)
 
     # If we were given just an API or BATCH, then expand it into the --config
     # syntax.
     shared_config_name = 'common.yaml'
     if artifact_config.language == config_pb2.Artifact.RUBY:
-        # TODO(ethanbao): Figure out why.
         shared_config_name = 'doc.yaml'
 
     legacy_config_dict = converter.convert_to_legacy_config_dict(
@@ -258,7 +257,7 @@ def normalize_flags(flags, user_config):
     logger.debug('Below is the legacy config after conversion:\n%s' %
                  pprint.pformat(legacy_config_dict))
     tmp_legacy_config_yaml = '%s.tmp' % artman_config_path
-    with open(tmp_legacy_config_yaml, 'w') as outfile:
+    with io.open(tmp_legacy_config_yaml, 'w') as outfile:
         yaml.dump(legacy_config_dict, outfile, default_flow_style=False)
 
     googleapis = os.path.realpath(
@@ -311,7 +310,7 @@ def normalize_flags(flags, user_config):
         publishing_config = _get_publishing_config(artifact_config,
                                                    flags.target)
         if publishing_config.type == config_pb2.Artifact.PublishTarget.GITHUB:
-            pipeline_args['publish'] = 'local' if flags.dryrun else 'github'
+            pipeline_args['publish'] = 'local' if flags.dry_run else 'github'
             pipeline_args['github'] = support.parse_github_credentials(
                 argv_flags=flags,
                 config=user_config.get('github', {}), )
@@ -319,9 +318,10 @@ def normalize_flags(flags, user_config):
             pipeline_args['git_repo'] = support.select_git_repo(
                 repos, publishing_config.name)
         else:
-            raise NameError(
+            logger.error(
                 'Publishing type `%s` is not supported yet.' % config_pb2.
                 Artifact.PublishTarget.Type.Name(publishing_config.type))
+            sys.exit(96)
 
     # Print out the final arguments to stdout, to help the user with
     # possible debugging.
@@ -341,8 +341,7 @@ def normalize_flags(flags, user_config):
     os.remove(tmp_legacy_config_yaml)
 
     # Return the final arguments.
-    # This includes a pipeline to run, arguments, and whether to run remotely.
-    return (pipeline_name, pipeline_args)
+    return pipeline_name, pipeline_args
 
 
 def _get_publishing_config(artifact_config_pb, publish_target):
@@ -351,9 +350,10 @@ def _get_publishing_config(artifact_config_pb, publish_target):
         valid_options.append(target.name)
         if target.name == publish_target:
             return target
-    raise KeyError('No publish target with `%s` configured in artifact `%s`. '
-                   'Valid options are %s' %
-                   (publish_target, artifact_config_pb.name, valid_options))
+    logger.error('No publish target with `%s` configured in artifact `%s`. '
+                 'Valid options are %s' %
+                 (publish_target, artifact_config_pb.name, valid_options))
+    sys.exit(96)
 
 
 def _run_artman_in_docker(flags):
@@ -370,7 +370,7 @@ def _run_artman_in_docker(flags):
     output_dir = flags.output_dir
     artman_config_dirname = os.path.dirname(flags.config)
     user_config = os.path.join(os.path.expanduser('~'), '.artman')
-    docker_image = 'e57acef1a4b1'  # flags.image
+    docker_image = flags.image
 
     inner_artman_cmd_str = ' '.join(sys.argv[1:])
 

@@ -143,7 +143,6 @@ class CreateGitHubBranch(task_base.TaskBase):
             self.exec_command(['rm', '-rf', repo_temp_dir])
 
             # Change the working directory back to where we started.
-            print(original_directory)
             os.chdir(original_directory)
 
 

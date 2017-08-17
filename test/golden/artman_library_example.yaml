@@ -26,6 +26,6 @@ nodejs:
 php:
   gapic_code_dir: ${REPOROOT}/output/legacy/google-php-cloud-library_example-v1
 python:
-  gapic_code_dir: ${REPOROOT}/output/legacy/gapic-google-cloud-library_example-v1
+  gapic_code_dir: ${REPOROOT}/output/legacy/python/library_example-v1
 ruby:
-  gapic_code_dir: ${REPOROOT}/output/legacy/google-cloud-ruby/google-cloud-library_example
+  gapic_code_dir: ${REPOROOT}/output/legacy/ruby/google-cloud-ruby/google-cloud-library_example

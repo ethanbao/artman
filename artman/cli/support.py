@@ -155,7 +155,7 @@ def check_docker_requirements(docker_image):
             'Docker not found on path or is not installed. Refert to '
             'https://docs.docker.com/engine/installation about how to install '
             'Docker on your local machine.')
-        sys.exit(1)
+        sys.exit(128)
 
     try:
         output = subprocess.check_output(
@@ -164,8 +164,8 @@ def check_docker_requirements(docker_image):
             logger.error(
                 'Cannot find artman Docker image. Run `docker pull %s` to '
                 'pull the image.' % docker_image)
-            sys.exit(1)
+            sys.exit(128)
     except OSError:
         logger.error('Docker image check failed. Please file an issue at '
                     'https://github.com/googleapis/artman/issues.')
-        sys.exit(1)
+        sys.exit(128)

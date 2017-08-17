@@ -39,7 +39,7 @@ def load_artifact_config(artman_config_path, artifact_name, input_dir):
             return _normalize_artifact_config(artifact_config, input_dir)
 
     raise ValueError(
-        'No artifact with `%s` configured in artman yaml. Valie values are %s'
+        'No artifact with `%s` configured in artman yaml. Valid values are %s'
         % (artifact_name, valid_values))
 
 
@@ -104,34 +104,29 @@ def _normalize_artifact_config(artifact_config, input_dir):
     name calculation logic should be moved from converter into this method.
     """
     # Normalize the input file or folder by prefixing with input_dir if needed.
-    if not os.path.isabs(artifact_config.service_yaml):
-        artifact_config.service_yaml = os.path.join(
-            input_dir, artifact_config.service_yaml)
+    artifact_config.service_yaml = _normalize_path(
+        artifact_config.service_yaml, input_dir)
 
-    if not os.path.isabs(artifact_config.gapic_yaml):
-        artifact_config.gapic_yaml = os.path.join(
-            input_dir, artifact_config.gapic_yaml)
+    artifact_config.gapic_yaml = _normalize_path(
+        artifact_config.gapic_yaml, input_dir)
 
     if not artifact_config.import_proto_path:
         artifact_config.import_proto_path[:] = [input_dir]
     else:
         normalized_import_proto_path = []
         for import_proto_path in artifact_config.import_proto_path:
-            if os.path.isabs(import_proto_path):
-                normalized_import_proto_path.append(import_proto_path)
-            else:
-                normalized_import_proto_path.append(
-                    os.path.join(input_dir, import_proto_path))
+            normalized_import_proto_path.append(
+                _normalize_path(import_proto_path, input_dir))
 
         artifact_config.import_proto_path[:] = normalized_import_proto_path
 
     normalized_src_proto_paths = []
     for src_proto_path in artifact_config.src_proto_paths:
-        if os.path.isabs(src_proto_path):
-            normalized_src_proto_paths.append(src_proto_path)
-        else:
-            normalized_src_proto_paths.append(
-                os.path.join(input_dir, src_proto_path))
+        normalized_src_proto_paths.append(
+            _normalize_path(src_proto_path, input_dir))
     artifact_config.src_proto_paths[:] = normalized_src_proto_paths
 
     return artifact_config
+
+def _normalize_path(path, prefix):
+  return path if os.path.isabs(path) else os.path.join(prefix, path)
