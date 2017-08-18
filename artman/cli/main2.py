@@ -34,7 +34,7 @@ from ruamel import yaml
 from taskflow import engines
 
 from artman.config import converter, loader
-from artman.config.proto import config_pb2
+from artman.config.proto.config_pb2 import Artifact, Config
 from artman.cli import support
 from artman.pipelines import pipeline_factory
 from artman.utils import config_util
@@ -249,7 +249,7 @@ def normalize_flags(flags, user_config):
     # If we were given just an API or BATCH, then expand it into the --config
     # syntax.
     shared_config_name = 'common.yaml'
-    if artifact_config.language == config_pb2.Artifact.RUBY:
+    if artifact_config.language == Artifact.RUBY:
         shared_config_name = 'doc.yaml'
 
     legacy_config_dict = converter.convert_to_legacy_config_dict(
@@ -273,18 +273,16 @@ def normalize_flags(flags, user_config):
 
     # Set the pipeline as well as package_type and packaging
     artifact_type = artifact_config.type
-    if artifact_type == config_pb2.Artifact.GAPIC:
+    if artifact_type in (Artifact.GAPIC, Artifact.GAPIC_ONLY):
         pipeline_name = 'GapicClientPipeline'
-    elif artifact_type == config_pb2.Artifact.GAPIC_CONFIG:
+    elif artifact_type in (Artifact.GRPC, Artifact.GRPC_COMMON):
+        pipeline_name = 'GrpcClientPipeline'
+    elif artifact_type == Artifact.GAPIC_CONFIG:
         pipeline_name = 'GapicConfigPipeline'
-    elif artifact_type == config_pb2.Artifact.GRPC:
-        pipeline_name = 'GrpcClientPipeline'
-    elif artifact_type == config_pb2.Artifact.GRPC_COMMON:
-        pipeline_name = 'GrpcClientPipeline'
-    elif artifact_type == config_pb2.Artifact.GAPIC_ONLY:
-        pipeline_name = 'GapicClientPipeline'
+    else:
+        raise ValueError('Unrecognized artifact.')
 
-    language = config_pb2.Artifact.Language.Name(
+    language = Artifact.Language.Name(
         artifact_config.language).lower()
     pipeline_args['language'] = language
 
@@ -309,7 +307,7 @@ def normalize_flags(flags, user_config):
     elif flags.subcommand == 'publish':
         publishing_config = _get_publishing_config(artifact_config,
                                                    flags.target)
-        if publishing_config.type == config_pb2.Artifact.PublishTarget.GITHUB:
+        if publishing_config.type == Artifact.PublishTarget.GITHUB:
             pipeline_args['publish'] = 'local' if flags.dry_run else 'github'
             pipeline_args['github'] = support.parse_github_credentials(
                 argv_flags=flags,
@@ -319,7 +317,7 @@ def normalize_flags(flags, user_config):
                 repos, publishing_config.name)
         else:
             logger.error(
-                'Publishing type `%s` is not supported yet.' % config_pb2.
+                'Publishing type `%s` is not supported yet.' %
                 Artifact.PublishTarget.Type.Name(publishing_config.type))
             sys.exit(96)
 

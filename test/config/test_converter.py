@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import os
 import unittest
 import yaml
@@ -37,7 +38,7 @@ class ConverterTest(unittest.TestCase):
             self.TESTDATA, artman_yaml), artifact_name, '/tmp/input')
         actual_legacy_config_dict = converter.convert_to_legacy_config_dict(
             artifact_config, '/tmp/input', '/tmp/output')
-        with open(os.path.join(
+        with io.open(os.path.join(
                 self.TESTDATA, expected_legacy_config), 'r') as yaml_file:
             expected_legacy_config_dict = yaml.load(yaml_file)
             self.assertDictEqual(

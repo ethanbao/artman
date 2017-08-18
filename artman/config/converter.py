@@ -23,7 +23,7 @@ the new artman config. Once that is done, this converter can be removed.
 from __future__ import absolute_import
 import os
 
-from artman.config.proto import config_pb2
+from artman.config.proto.config_pb2 import Artifact
 
 
 def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
@@ -48,14 +48,14 @@ def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
 
     package_type = 'grpc_client'  # default package_type
     packaging = 'single-artifact'  # default packaing
-    if artifact_config.type == config_pb2.Artifact.GRPC_COMMON:
+    if artifact_config.type == Artifact.GRPC_COMMON:
         package_type = 'grpc_common'
-    elif artifact_config.type == config_pb2.Artifact.GAPIC_ONLY:
+    elif artifact_config.type == Artifact.GAPIC_ONLY:
         packaging = 'google-cloud'
     common['packaging'] = packaging
     common['package_type'] = package_type
 
-    language = config_pb2.Artifact.Language.Name(
+    language = Artifact.Language.Name(
         artifact_config.language).lower()
     language_config_dict = {}
     rel_gapic_code_dir = _calculate_rel_gapic_output_dir(
@@ -65,7 +65,7 @@ def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
     language_config_dict['git_repos'] = _calculate_git_repos_config(
         artifact_config, output_dir)
     language_config_dict['release_level'] = (
-        config_pb2.Artifact.ReleaseLevel.Name(
+        Artifact.ReleaseLevel.Name(
             artifact_config.release_level).lower())
 
     # Convert package version configuration.
@@ -141,7 +141,7 @@ def _calculate_rel_gapic_output_dir(language, api_name, api_version):
 def _calculate_git_repos_config(artifact_config, output_dir):
     result = {}
     for target in artifact_config.publish_targets:
-        if not target.type == config_pb2.Artifact.PublishTarget.GITHUB:
+        if not target.type == Artifact.PublishTarget.GITHUB:
             continue
         item = {}
         item['location'] = target.location
