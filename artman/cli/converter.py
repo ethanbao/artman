@@ -68,8 +68,9 @@ def _convert(legacy_config):
     result.common.api_version = legacy_config['common']['api_version']
     result.common.organization_name = legacy_config[
         'common']['organization_name']
-    result.common.gapic_yaml = _sanitize_repl_var(
-        legacy_config['common']['gapic_api_yaml'][0])
+    if 'gapic_api_yaml' inlegacy_config['common']:
+        result.common.gapic_yaml = _sanitize_repl_var(
+            legacy_config['common']['gapic_api_yaml'][0])
     result.common.service_yaml = _sanitize_repl_var(
         legacy_config['common']['service_yaml'][0])
     if 'proto_deps' in legacy_config['common']:
@@ -216,10 +217,12 @@ def _write_pb_to_yaml(pb, output):
     yaml.add_representer(OrderedDict, represent_ordereddict)
 
     json_obj = _order_dict(convert_json(json.loads(MessageToJson(pb))))
-    print(yaml.dump(json_obj, default_flow_style=False))
     if output:
         with open(output, 'w') as outfile:
             yaml.dump(json_obj, outfile, default_flow_style=False)
+        print('Check the converted yaml at %s' % output)
+    else:
+        print(yaml.dump(json_obj, default_flow_style=False))
 
 def represent_ordereddict(dumper, data):
     value = []
