@@ -271,20 +271,21 @@ def normalize_flags(flags, user_config):
         googleapis=googleapis,
         shared_config_name=shared_config_name, )
 
+    language = Artifact.Language.Name(
+        artifact_config.language).lower()
+
     # Set the pipeline as well as package_type and packaging
     artifact_type = artifact_config.type
     if artifact_type in (Artifact.GAPIC, Artifact.GAPIC_ONLY):
         pipeline_name = 'GapicClientPipeline'
+        pipeline_args['language'] = language
     elif artifact_type in (Artifact.GRPC, Artifact.GRPC_COMMON):
         pipeline_name = 'GrpcClientPipeline'
+        pipeline_args['language'] = language
     elif artifact_type == Artifact.GAPIC_CONFIG:
         pipeline_name = 'GapicConfigPipeline'
     else:
         raise ValueError('Unrecognized artifact.')
-
-    language = Artifact.Language.Name(
-        artifact_config.language).lower()
-    pipeline_args['language'] = language
 
     # Parse out the full configuration.
     # Note: the var replacement is still needed because they are still being

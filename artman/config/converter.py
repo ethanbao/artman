@@ -55,6 +55,13 @@ def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
     common['packaging'] = packaging
     common['package_type'] = package_type
 
+    result = {}
+    result['common'] = common
+
+    if artifact_config.type == Artifact.GAPIC_CONFIG:
+        # Early return if the artifact type is GAPIC_CONFIG
+        return result
+
     language = Artifact.Language.Name(
         artifact_config.language).lower()
     language_config_dict = {}
@@ -81,8 +88,6 @@ def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
             language_config_dict['generated_package_version'] = (
                 package_version_dict)
 
-    result = {}
-    result['common'] = common
     result[language] = language_config_dict
     return result
 
