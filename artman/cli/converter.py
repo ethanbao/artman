@@ -40,7 +40,7 @@ def main(*args):
 
     # Get to a normalized set of arguments.
     try:
-        flags = parse_args(*args)
+        flags = _parse_args(*args)
         legacy_config = _load_legacy_config_dict(os.path.abspath(flags.config))
         new_config = _convert(legacy_config)
         _write_pb_to_yaml(new_config, flags.output)
@@ -49,7 +49,7 @@ def main(*args):
         raise
 
 
-def parse_args(*args):
+def _parse_args(*args):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'config',
@@ -144,15 +144,6 @@ def _compute_artifacts(legacy_config, legacy_common):
     return result
 
 
-def _compute_package_version(legacy_package_version):
-    result = Artifact.PackageVersion()
-    if 'lower' in legacy_package_version:
-        result.grpc_dep_lower_bound = legacy_package_version.get('lower')
-    if 'upper' in legacy_package_version:
-        result.grpc_dep_upper_bound = legacy_package_version.get('upper')
-    return result
-
-
 def _compute_artifact_type(legacy_common):
     if legacy_common.get('packaging', '') == 'google-cloud':
         return Artifact.GAPIC_ONLY
@@ -217,38 +208,38 @@ def _sanitize_repl_var(value):
         return value.replace('${GOOGLEAPIS}/', '')
     if value.startswith('${REPOROOT}/'):
         return value.replace('${REPOROOT}/', '')
+    return value
 
-
-def camel_to_underscore(name):
+def _camel_to_underscore(name):
     camel_pat = re.compile(r'([A-Z])')
     return camel_pat.sub(lambda x: '_' + x.group(1).lower(), name)
 
 
-def convert_json(d):
+def _convert_json(d):
     """Convert the dict to turn all key into lower underscore case."""
     new_d = {}
     for k, v in d.items():
         if isinstance(v, dict):
-            new_d[camel_to_underscore(k)] = convert_json(v)
+            new_d[_camel_to_underscore(k)] = _convert_json(v)
         elif isinstance(v, list):
             if isinstance(v[0], dict):
                 result = []
                 for d2 in v:
-                    result.append(convert_json(d2))
-                new_d[camel_to_underscore(k)] = result
+                    result.append(_convert_json(d2))
+                new_d[_camel_to_underscore(k)] = result
             else:
-                new_d[camel_to_underscore(k)] = v
+                new_d[_camel_to_underscore(k)] = v
         else:
-            new_d[camel_to_underscore(k)] = v
+            new_d[_camel_to_underscore(k)] = v
     return new_d
 
 
 def _write_pb_to_yaml(pb, output):
-    # Add yaml representer so taht yaml dump can dump OrderedDict. The code
+    # Add yaml representer so that yaml dump can dump OrderedDict. The code
     # is coming from https://stackoverflow.com/questions/16782112.
-    yaml.add_representer(OrderedDict, represent_ordereddict)
+    yaml.add_representer(OrderedDict, _represent_ordereddict)
 
-    json_obj = _order_dict(convert_json(json.loads(MessageToJson(pb))))
+    json_obj = _order_dict(_convert_json(json.loads(MessageToJson(pb))))
     if output:
         with open(output, 'w') as outfile:
             yaml.dump(json_obj, outfile, default_flow_style=False)
@@ -257,7 +248,7 @@ def _write_pb_to_yaml(pb, output):
         print(yaml.dump(json_obj, default_flow_style=False))
 
 
-def represent_ordereddict(dumper, data):
+def _represent_ordereddict(dumper, data):
     value = []
     for item_key, item_value in data.items():
         node_key = dumper.represent_data(item_key)
