@@ -19,16 +19,18 @@ removed after all current artman users migrate to the new artman config format.
 """
 
 from __future__ import absolute_import
+from __future__ import print_function
+
 import argparse
+from collections import OrderedDict
 import io
 import json
-import re
 import sys
+import traceback
 import os
+
+import stringcase
 import yaml
-
-
-from collections import OrderedDict
 
 from artman.config.proto.config_pb2 import Artifact, Config
 from google.protobuf.json_format import MessageToJson
@@ -44,9 +46,9 @@ def main(*args):
         legacy_config = _load_legacy_config_dict(os.path.abspath(flags.config))
         new_config = _convert(legacy_config)
         _write_pb_to_yaml(new_config, flags.output)
-    except Exception:
-        print('Fail to convert `%s`.' % flags.config)
-        raise
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+        sys.exit('Fail to convert `%s` due to `%s`.' % (flags.config, e))
 
 
 def _parse_args(*args):
@@ -69,8 +71,7 @@ def _convert(legacy_config):
     # Compute common section
     result = Config()
     if 'common' not in legacy_config:
-        print('`common` field is a required field in the legacy config.')
-        sys.exit(2)
+        sys.exit('`common` field is a required field in the legacy config.')
     legacy_common = legacy_config.get('common')
     result.common.api_name = legacy_common.get('api_name', 'unspecified')
     result.common.api_version = legacy_common.get('api_version', 'unspecified')
@@ -95,7 +96,16 @@ def _convert(legacy_config):
         result.common.src_proto_paths.extend(
             _compute_src_proto_paths(legacy_common.get('src_proto_path')))
 
-    result.artifacts.extend(_compute_artifacts(legacy_config, legacy_common))
+    artifacts = _compute_artifacts(legacy_config, legacy_common)
+    # Append a gapic_config artifact.
+    artifacts.append(
+        Artifact(
+            name='gapic_config',
+            type=Artifact.GAPIC_CONFIG,
+        )
+    )
+    result.artifacts.extend(artifacts)
+
     return result
 
 
@@ -104,20 +114,18 @@ def _compute_artifacts(legacy_config, legacy_common):
     LANGS = ['java', 'python', 'php', 'ruby', 'go', 'csharp', 'nodejs']
 
     # Compute artifacts section
-    if legacy_common.get('git_repos'):
-        common_git_repos = legacy_common.get('git_repos')
-    else:
-        common_git_repos = []
+    common_git_repos = legacy_common.get('git_repos', {})
 
     for lang in LANGS:
         if lang not in legacy_config:
             continue
         legacy_artifact_config = legacy_config[lang]
         if legacy_artifact_config:
-            artifact = Artifact()
-            # Name the artifact as `{lang}_gapic`.
-            artifact.name = '%s_gapic' % lang
-            artifact.language = Artifact.Language.Value(lang.upper())
+            artifact = Artifact(
+                # Name the artifact as `{lang}_gapic`.
+                name='%s_gapic' % lang,
+                language=Artifact.Language.Value(lang.upper()),
+            )
 
             if 'release_level' in legacy_artifact_config:
                 artifact.release_level = Artifact.ReleaseLevel.Value(
@@ -137,9 +145,9 @@ def _compute_artifacts(legacy_config, legacy_common):
                         legacy_package_version.get('upper'))
 
             # Compute publishing targets
-            if 'git_repos' in legacy_artifact_config:
-                artifact.publish_targets.extend(_compute_publish_targets(
-                    legacy_artifact_config.get('git_repos'), common_git_repos))
+            artifact.publish_targets.extend(_compute_publish_targets(
+                legacy_artifact_config.get('git_repos', {}),
+                common_git_repos))
             result.append(artifact)
     return result
 
@@ -154,18 +162,22 @@ def _compute_artifact_type(legacy_common):
 
 
 def _compute_publish_targets(git_repos, common_git_repos):
+    # Merge the individual git_repos config with the common ones.
+    for k, v in common_git_repos.items():
+        if k in git_repos:
+            merged_entry = v.copy()
+            merged_entry.update(git_repos[k])
+            git_repos[k] = merged_entry
+
     result = []
     for k, v in git_repos.items():
-        location = (common_git_repos[k]['location']
-                    if k in common_git_repos.keys() else v['location'])
-        target = Artifact.PublishTarget()
-        target.name = k
-        target.location = location
-        target.type = Artifact.PublishTarget.GITHUB
+        target = Artifact.PublishTarget(
+            name=k,
+            location=v.get('location', ''),
+            type=Artifact.PublishTarget.GITHUB,
+            directory_mappings=_compute_directory_mappings(v.get('paths', []))
+        )
 
-        if 'paths' in v:
-            target.directory_mappings.extend(
-                _compute_directory_mappings(v['paths']))
         result.append(target)
     return result
 
@@ -173,26 +185,24 @@ def _compute_publish_targets(git_repos, common_git_repos):
 def _compute_directory_mappings(paths):
     result = []
     for path in paths:
-        mapping = Artifact.PublishTarget.DirectoryMapping()
+        mapping = {}
         if isinstance(path, str):
-            mapping.dest = path
+            mapping['dest'] = path
         else:
             if 'src' in path:
-                mapping.src = path.get('src')
+                mapping['src'] = path.get('src')
             if 'dest' in path:
-                mapping.dest = path.get('dest')
+                mapping['dest'] = path.get('dest')
             if 'artifact' in path:
-                mapping.name = path.get('artifact')
-            result.append(mapping)
+                mapping['name'] = path.get('artifact')
+        result.append(Artifact.PublishTarget.DirectoryMapping(**mapping))
     return result
 
 
 def _compute_deps(proto_deps):
     result = []
     for dep in proto_deps:
-        new_dep = Artifact.ProtoDependency()
-        new_dep.name = dep
-        result.append(new_dep)
+        result.append(Artifact.ProtoDependency(name=dep))
     return result
 
 
@@ -204,33 +214,25 @@ def _compute_src_proto_paths(src_proto_paths):
 
 
 def _sanitize_repl_var(value):
-    if value.startswith('${GOOGLEAPIS}/'):
-        return value.replace('${GOOGLEAPIS}/', '')
-    if value.startswith('${REPOROOT}/'):
-        return value.replace('${REPOROOT}/', '')
-    return value
-
-def _camel_to_underscore(name):
-    camel_pat = re.compile(r'([A-Z])')
-    return camel_pat.sub(lambda x: '_' + x.group(1).lower(), name)
+    return value.replace('${REPOROOT}/', '').replace('${GOOGLEAPIS}/', '')
 
 
 def _convert_json(d):
-    """Convert the dict to turn all key into lower underscore case."""
+    """Convert the dict to turn all key into snake case."""
     new_d = {}
     for k, v in d.items():
         if isinstance(v, dict):
-            new_d[_camel_to_underscore(k)] = _convert_json(v)
+            new_d[stringcase.snakecase(k)] = _convert_json(v)
         elif isinstance(v, list):
             if isinstance(v[0], dict):
                 result = []
                 for d2 in v:
                     result.append(_convert_json(d2))
-                new_d[_camel_to_underscore(k)] = result
+                new_d[stringcase.snakecase(k)] = result
             else:
-                new_d[_camel_to_underscore(k)] = v
+                new_d[stringcase.snakecase(k)] = v
         else:
-            new_d[_camel_to_underscore(k)] = v
+            new_d[stringcase.snakecase(k)] = v
     return new_d
 
 
@@ -243,9 +245,9 @@ def _write_pb_to_yaml(pb, output):
     if output:
         with open(output, 'w') as outfile:
             yaml.dump(json_obj, outfile, default_flow_style=False)
-        print('Check the converted yaml at %s' % output)
+        print('Check the converted yaml at %s' % output, file=sys.stdout)
     else:
-        print(yaml.dump(json_obj, default_flow_style=False))
+        print(yaml.dump(json_obj, default_flow_style=False), file=sys.stdout)
 
 
 def _represent_ordereddict(dumper, data):
@@ -269,7 +271,7 @@ def _order_dict(od):
         'src_proto_paths', 'proto_deps', 'test_proto_deps',
         'type', 'language', 'release_level', 'package_version',
         'publish_targets', 'location', 'directory_mappings', 'src', 'dest',
-        'grpc_dep_lower_bound', 'grpc_dep_upper_bound'
+        'grpc_dep_lower_bound', 'grpc_dep_upper_bound',
     ]
     res = OrderedDict()
     for k, v in sorted(od.items(), key=lambda i: keyorder.index(i[0])):

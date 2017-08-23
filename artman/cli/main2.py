@@ -407,8 +407,8 @@ def _run_artman_in_docker(flags):
 
 def _change_owner(flags, pipeline_name, pipeline_kwargs):
     """Change file/folder ownership if necessary."""
-    user_host_id = int(os.getenv('HOST_USER_ID'))
-    group_host_id = int(os.getenv('HOST_GROUP_ID'))
+    user_host_id = int(os.getenv('HOST_USER_ID', 0))
+    group_host_id = int(os.getenv('HOST_GROUP_ID', 0))
     # When artman runs in Docker instance, all output files are by default
     # owned by `root`, making it non-editable by Docker host user. When host
     # user id and group id get passed through environment variables via
