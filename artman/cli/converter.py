@@ -47,7 +47,7 @@ def main(*args):
         new_config = _convert(legacy_config)
         _write_pb_to_yaml(new_config, flags.output)
     except Exception as e:
-        traceback.print_exc(file=sys.stdout)
+        traceback.print_exc(file=sys.stderr)
         sys.exit('Fail to convert `%s` due to `%s`.' % (flags.config, e))
 
 
