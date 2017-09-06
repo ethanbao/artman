@@ -26,6 +26,7 @@ import argparse
 import io
 import os
 import pprint
+import shutil
 import subprocess
 import sys
 
@@ -40,8 +41,8 @@ from artman.pipelines import pipeline_factory
 from artman.utils import config_util
 from artman.utils.logger import logger, setup_logging
 
-ARTMAN_DOCKER_IMAGE = 'googleapis/artman:0.4.12'
-
+ARTMAN_DOCKER_IMAGE = 'googleapis/artman:0.4.13'
+RUNNING_IN_ARTMAN_DOCKER_TOKEN = 'RUNNING_IN_ARTMAN_DOCKER'
 
 def main(*args):
     """Main method of artman."""
@@ -53,6 +54,7 @@ def main(*args):
     # Get to a normalized set of arguments.
     flags = parse_args(*args)
     user_config = read_user_config(flags)
+    _adjust_input_dir(flags.input_dir)
     pipeline_name, pipeline_kwargs = normalize_flags(flags, user_config)
 
     if flags.local:
@@ -72,6 +74,36 @@ def main(*args):
         # pulling the shared configuration files if necessary.
         logger.info('Running artman command in a Docker instance.')
         _run_artman_in_docker(flags)
+
+
+def _adjust_input_dir(input_dir):
+    # Adjust input directory to use versioned shared config under
+    # /googleapis/gapic/[core,lang,packaging]. Currently, the codegen has
+    # coupling with some shared configuration yaml under those directories,
+    # causing library generation to fail when a breaking change is made to such
+    # shared configuration file. This delivers a poor user experience to artman
+    # users, as their library generation could fail without any change at API
+    # proto side.
+    # TODO(ethanbao): Remove this logic once
+    # https://github.com/googleapis/toolkit/issues/1450 is fixed.
+    if os.getenv(RUNNING_IN_ARTMAN_DOCKER_TOKEN):
+        # Only doing this when running inside Docker container
+        DIRS = [
+            'gapic/core',
+            'gapic/lang',
+            'gapic/packaging'
+        ]
+        for src_dir in DIRS:
+            # /googleapis is the root of the versioned googleapis repo
+            # inside Artman Docker image.
+            abs_src_dir = os.path.join('/googleapis', src_dir)
+            for root, dirs, files in os.walk(abs_src_dir):
+                dest_dir = os.path.join(input_dir, src_dir)
+                for src in files:
+                    if not os.path.exists(dest_dir):
+                        os.makedirs(dest_dir)
+                    shutil.copy(os.path.join(abs_src_dir, src),
+                                os.path.join(dest_dir, src))
 
 
 def parse_args(*args):
@@ -376,12 +408,13 @@ def _run_artman_in_docker(flags):
     # TODO(ethanbao): Such folder to folder mounting won't work on windows.
     base_cmd = [
         'docker', 'run', '--name', ARTMAN_CONTAINER_NAME, '--rm', '-i', '-t',
-        '-e', 'HOST_USER_ID=%s' % os.getuid(), '-e',
-        'HOST_GROUP_ID=%s' % os.getgid(), '-v', '%s:%s' % (input_dir,
-                                                           input_dir), '-v',
-        '%s:%s' % (output_dir, output_dir), '-v', '%s:%s' %
-        (artman_config_dirname,
-         artman_config_dirname), '-v', '%s:/home/.artman' % user_config, '-w',
+        '-e', 'HOST_USER_ID=%s' % os.getuid(),
+        '-e', 'HOST_GROUP_ID=%s' % os.getgid(),
+        '-e', '%s=True' % RUNNING_IN_ARTMAN_DOCKER_TOKEN,
+        '-v', '%s:%s' % (input_dir, input_dir),
+        '-v', '%s:%s' % (output_dir, output_dir),
+        '-v', '%s:%s' % (artman_config_dirname, artman_config_dirname),
+        '-v', '%s:/home/.artman' % user_config, '-w',
         os.getcwd(), docker_image, '/bin/bash', '-c'
     ]
 
