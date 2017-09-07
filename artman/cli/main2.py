@@ -88,12 +88,12 @@ def _adjust_input_dir(input_dir):
     # https://github.com/googleapis/toolkit/issues/1450 is fixed.
     if os.getenv(RUNNING_IN_ARTMAN_DOCKER_TOKEN):
         # Only doing this when running inside Docker container
-        DIRS = [
+        common_config_dirs = [
             'gapic/core',
             'gapic/lang',
             'gapic/packaging'
         ]
-        for src_dir in DIRS:
+        for src_dir in common_config_dirs:
             # /googleapis is the root of the versioned googleapis repo
             # inside Artman Docker image.
             abs_src_dir = os.path.join('/googleapis', src_dir)
