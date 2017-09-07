@@ -23,10 +23,10 @@
 from __future__ import absolute_import
 from logging import DEBUG, INFO
 import argparse
+from distutils.dir_util import copy_tree
 import io
 import os
 import pprint
-import shutil
 import subprocess
 import sys
 
@@ -77,33 +77,46 @@ def main(*args):
 
 
 def _adjust_input_dir(input_dir):
-    # Adjust input directory to use versioned shared config under
-    # /googleapis/gapic/[core,lang,packaging]. Currently, the codegen has
-    # coupling with some shared configuration yaml under those directories,
-    # causing library generation to fail when a breaking change is made to such
-    # shared configuration file. This delivers a poor user experience to artman
-    # users, as their library generation could fail without any change at API
-    # proto side.
-    # TODO(ethanbao): Remove this logic once
-    # https://github.com/googleapis/toolkit/issues/1450 is fixed.
+    """"Adjust input directory to use versioned common config and/or protos.
+
+    Currently che codegen has coupling with some shared configuration yaml
+    under under {googleapis repo}/gapic/[core,lang,packaging], causing library
+    generation to fail when a breaking change is made to such shared
+    configuration file. This delivers a poor user experience to artman
+    users, as their library generation could fail without any change at API
+    proto side.
+
+    Similarily, some common protos will be needed during protoc
+    compilation, but is not provided by users in some cases. When such shared
+    proto directories are not provided, copy and use the versioned ones.
+
+    TODO(ethanbao): Remove the config copy once
+    https://github.com/googleapis/toolkit/issues/1450 is fixed.
+    """
     if os.getenv(RUNNING_IN_ARTMAN_DOCKER_TOKEN):
         # Only doing this when running inside Docker container
         common_config_dirs = [
             'gapic/core',
             'gapic/lang',
-            'gapic/packaging'
+            'gapic/packaging',
+        ]
+        common_proto_dirs = [
+            'google/api',
+            'google/iam/v1',
+            'google/longrunning',
+            'google/rpc',
+            'google/type',
         ]
         for src_dir in common_config_dirs:
             # /googleapis is the root of the versioned googleapis repo
             # inside Artman Docker image.
-            abs_src_dir = os.path.join('/googleapis', src_dir)
-            for root, dirs, files in os.walk(abs_src_dir):
-                dest_dir = os.path.join(input_dir, src_dir)
-                for src in files:
-                    if not os.path.exists(dest_dir):
-                        os.makedirs(dest_dir)
-                    shutil.copy(os.path.join(abs_src_dir, src),
-                                os.path.join(dest_dir, src))
+            copy_tree(os.path.join('/googleapis', src_dir),
+                      os.path.join(input_dir, src_dir))
+
+        for src_dir in common_proto_dirs:
+            if not os.path.exists(os.path.join(input_dir, src_dir)):
+                copy_tree(os.path.join('/googleapis', src_dir),
+                          os.path.join(input_dir, src_dir))
 
 
 def parse_args(*args):
