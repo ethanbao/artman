@@ -26,7 +26,7 @@ import os
 from artman.config.proto.config_pb2 import Artifact
 
 
-def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
+def convert_to_legacy_config_dict(artifact_config, root_dir, output_dir):
     common = {}
     common['api_name'] = artifact_config.api_name
     common['api_version'] = artifact_config.api_version
@@ -38,8 +38,7 @@ def convert_to_legacy_config_dict(artifact_config, intput_dir, output_dir):
             artifact_config.src_proto_paths))
     if excluded_proto_path:
         common['excluded_proto_path'] = excluded_proto_path
-    common['import_proto_path'] = _repeated_proto3_field_to_list(
-        artifact_config.import_proto_path)
+    common['import_proto_path'] = [root_dir]
     common['output_dir'] = output_dir
 
     legacy_proto_deps, legacy_test_proto_deps, desc_proto_paths = (

@@ -26,7 +26,7 @@ from google.protobuf import json_format
 from artman.config.proto import config_pb2
 
 
-def load_artifact_config(artman_config_path, artifact_name, input_dir):
+def load_artifact_config(artman_config_path, artifact_name):
     artman_config = _read_artman_config(artman_config_path)
     artifact_config = config_pb2.Artifact()
     artifact_config.CopyFrom(artman_config.common)
@@ -36,7 +36,8 @@ def load_artifact_config(artman_config_path, artifact_name, input_dir):
         if artifact.name == artifact_name:
             artifact_config.MergeFrom(artifact)
             _validate_artifact_config(artifact_config)
-            return _normalize_artifact_config(artifact_config, input_dir)
+            return _normalize_artifact_config(
+                artifact_config, os.path.dirname(artman_config_path))
 
     raise ValueError(
         'No artifact with `%s` configured in artman yaml. Valid values are %s'
@@ -95,7 +96,7 @@ def _validate_artifact_config(artifact_config):
     pass
 
 
-def _normalize_artifact_config(artifact_config, input_dir):
+def _normalize_artifact_config(artifact_config, artman_config_dir):
     """Normalize the config protobuf based on flags passed from command line.
 
     Note: we are not normalizing output folders because they are no longer
@@ -103,32 +104,22 @@ def _normalize_artifact_config(artifact_config, input_dir):
     Once the individual GAPIC output folder becomes configurable, that folder
     name calculation logic should be moved from converter into this method.
     """
-    # Normalize the input file or folder by prefixing with input_dir if needed.
+    # Normalize the input file or folder by making it
     artifact_config.service_yaml = _normalize_path(
-        artifact_config.service_yaml, input_dir)
+        artifact_config.service_yaml, artman_config_dir)
 
     artifact_config.gapic_yaml = _normalize_path(
-        artifact_config.gapic_yaml, input_dir)
-
-    if not artifact_config.import_proto_path:
-        artifact_config.import_proto_path[:] = [input_dir]
-    else:
-        normalized_import_proto_path = []
-        for import_proto_path in artifact_config.import_proto_path:
-            normalized_import_proto_path.append(
-                _normalize_path(import_proto_path, input_dir))
-
-        artifact_config.import_proto_path[:] = normalized_import_proto_path
+        artifact_config.gapic_yaml, artman_config_dir)
 
     normalized_src_proto_paths = []
     for src_proto_path in artifact_config.src_proto_paths:
         if src_proto_path.startswith('-'):
             # Retain the exclusion mark "-" as the prefix of the normalized path
             normalized_src_proto_paths.append(
-                '-%s' % _normalize_path(src_proto_path[1:], input_dir))
+                '-%s' % _normalize_path(src_proto_path[1:], artman_config_dir))
         else:
             normalized_src_proto_paths.append(
-                _normalize_path(src_proto_path, input_dir))
+                _normalize_path(src_proto_path, artman_config_dir))
     artifact_config.src_proto_paths[:] = normalized_src_proto_paths
 
     return artifact_config
