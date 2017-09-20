@@ -130,14 +130,14 @@ def _normalize_artifact_config(artifact_config, artman_config_path):
     return artifact_config
 
 
-def _normalize_path(path, artman_config_path, field_name):
+def _normalize_path(path, artman_config_path, field):
     if path.startswith('..'):
         raise ValueError(
             '".." is disallowed in `%s` field of `%s`. Please use either a '
             'path relative to `%s` (preferred). or an absolute path.'
-            % (field_name, artman_config_path,
+            % (field, artman_config_path,
                os.path.dirname(artman_config_path)))
     if os.path.isabs(path):
         return path
     else:
-        os.path.join(os.path.dirname(artman_config_path), path)
+        return os.path.join(os.path.dirname(artman_config_path), path)
