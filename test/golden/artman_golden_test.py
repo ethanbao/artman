@@ -104,7 +104,7 @@ def generate_gapic_library(golden_dir, googleapis_dir, output_dir, artifact_id):
         'artman2',
         '--config', '%s/artman_library_example_new.yaml' % golden_dir,
         '--local',
-        '--input-dir', googleapis_dir,
+        '--root-dir', googleapis_dir,
         '--output-dir', output_dir,
         'generate',
         artifact_id,

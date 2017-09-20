@@ -125,4 +125,6 @@ def _normalize_artifact_config(artifact_config, artman_config_dir):
     return artifact_config
 
 def _normalize_path(path, prefix):
-  return path if os.path.isabs(path) else os.path.join(prefix, path)
+    if '..' in path:
+        raise ValueError('Cannot use ".." in path-typed field in artman yaml')
+    return path if os.path.isabs(path) else os.path.join(prefix, path)

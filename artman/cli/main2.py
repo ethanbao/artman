@@ -126,9 +126,8 @@ def parse_args(*args):
         type=str,
         default='artman.yaml',
         help='[Optional] Specify path to artman config yaml, which can be '
-        'either an absolute path, or a path relative to the input '
-        'directory (specified by `--input-dir` flag). Default to '
-        '`artman.yaml`', )
+        'either an absolute path, or a path relative to current working '
+        'directory. Default to `artman.yaml`', )
     parser.add_argument(
         '--output-dir',
         type=str,
@@ -143,8 +142,7 @@ def parse_args(*args):
         'which include but not limited to API protos, service config yaml '
         'and GAPIC config yaml. It will be passed to protobuf compiler via '
         '`-I` flag in order to generate descriptor. If not specified, it will '
-        'first look up in artman user config. If not found, the current '
-        'directory will be used.',
+        'first look up in artman user config. If not found, it will warn user.',
     )
     parser.add_argument(
         '-v',
@@ -288,7 +286,9 @@ def normalize_flags(flags, user_config):
     elif pipeline_args['local_paths']['googleapis']:
         root_dir = pipeline_args['local_paths']['googleapis']
     else:
-        root_dir = os.getcwd()
+        logger.error('`--root-dir` flag must be passed, or you will have to '
+                     'specify the `googleapis` field in artman user config.')
+        sys.exit(96)
 
     artman_config_path = flags.config
     if not os.path.isfile(artman_config_path):
