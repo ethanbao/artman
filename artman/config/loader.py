@@ -37,7 +37,7 @@ def load_artifact_config(artman_config_path, artifact_name):
             artifact_config.MergeFrom(artifact)
             _validate_artifact_config(artifact_config)
             return _normalize_artifact_config(
-                artifact_config, os.path.dirname(artman_config_path))
+                artifact_config, artman_config_path)
 
     raise ValueError(
         'No artifact with `%s` configured in artman yaml. Valid values are %s'
@@ -96,7 +96,7 @@ def _validate_artifact_config(artifact_config):
     pass
 
 
-def _normalize_artifact_config(artifact_config, artman_config_dir):
+def _normalize_artifact_config(artifact_config, artman_config_path):
     """Normalize the config protobuf based on flags passed from command line.
 
     Note: we are not normalizing output folders because they are no longer
@@ -107,27 +107,37 @@ def _normalize_artifact_config(artifact_config, artman_config_dir):
     # Normalize the input file or folder by concanating relative path with
     # the folder of artman config yaml.
     artifact_config.service_yaml = _normalize_path(
-        artifact_config.service_yaml, artman_config_dir)
+        artifact_config.service_yaml, artman_config_path, 'service_yaml')
 
     artifact_config.gapic_yaml = _normalize_path(
-        artifact_config.gapic_yaml, artman_config_dir)
+        artifact_config.gapic_yaml, artman_config_path, 'gapic_yaml')
 
     normalized_src_proto_paths = []
     for src_proto_path in artifact_config.src_proto_paths:
         if src_proto_path.startswith('-'):
             # Retain the exclusion mark "-" as the prefix of the normalized path
             normalized_src_proto_paths.append(
-                '-%s' % _normalize_path(src_proto_path[1:], artman_config_dir))
+                '-%s' % _normalize_path(src_proto_path[1:],
+                                        artman_config_path,
+                                        'src_proto_paths'))
         else:
             normalized_src_proto_paths.append(
-                _normalize_path(src_proto_path, artman_config_dir))
+                _normalize_path(src_proto_path,
+                                artman_config_path,
+                                'src_proto_paths'))
     artifact_config.src_proto_paths[:] = normalized_src_proto_paths
 
     return artifact_config
 
-def _normalize_path(path, prefix):
-  if '..' in path:
-      raise ValueError('Cannot use ".." path-typed field in artman yaml. '
-                       'Please use either path relative to artman yaml '
-                       '(preferred). or an absolute path.')
-  return path if os.path.isabs(path) else os.path.join(prefix, path)
+
+def _normalize_path(path, artman_config_path, field_name):
+    if path.startswith('..'):
+        raise ValueError(
+            '".." is disallowed in `%s` field of `%s`. Please use either a '
+            'path relative to `%s` (preferred). or an absolute path.'
+            % (field_name, artman_config_path,
+               os.path.dirname(artman_config_path)))
+    if os.path.isabs(path):
+        return path
+    else:
+        os.path.join(os.path.dirname(artman_config_path), path)

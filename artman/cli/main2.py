@@ -138,7 +138,7 @@ def parse_args(*args):
     parser.add_argument(
         '--root-dir',
         type=str,
-        default=None,
+        default='',
         help='[Optional] Directory with all input that is needed by artman, '
         'which include but not limited to API protos, service config yaml '
         'and GAPIC config yaml. It will be passed to protobuf compiler via '
