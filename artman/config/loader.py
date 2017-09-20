@@ -104,7 +104,8 @@ def _normalize_artifact_config(artifact_config, artman_config_dir):
     Once the individual GAPIC output folder becomes configurable, that folder
     name calculation logic should be moved from converter into this method.
     """
-    # Normalize the input file or folder by making it
+    # Normalize the input file or folder by concanating relative path with
+    # the folder of artman config yaml.
     artifact_config.service_yaml = _normalize_path(
         artifact_config.service_yaml, artman_config_dir)
 
@@ -125,6 +126,8 @@ def _normalize_artifact_config(artifact_config, artman_config_dir):
     return artifact_config
 
 def _normalize_path(path, prefix):
-    if '..' in path:
-        raise ValueError('Cannot use ".." in path-typed field in artman yaml')
-    return path if os.path.isabs(path) else os.path.join(prefix, path)
+  if '..' in path:
+      raise ValueError('Cannot use ".." path-typed field in artman yaml. '
+                       'Please use either path relative to artman yaml '
+                       '(preferred). or an absolute path.')
+  return path if os.path.isabs(path) else os.path.join(prefix, path)

@@ -169,10 +169,10 @@ def _calculate_git_repos_config(artifact_config, output_dir):
 
 
 def _calculate_proto_paths(proto_paths):
-  src_proto_path, excluded_proto_path = [], []
-  for proto_path in proto_paths:
-      if proto_path.startswith('-'):
-          excluded_proto_path.append(proto_path[1:])
-      else:
-          src_proto_path.append(proto_path)
-  return src_proto_path, excluded_proto_path
+    src_proto_path, excluded_proto_path = [], []
+    for proto_path in proto_paths:
+        if proto_path.startswith('-'):
+            excluded_proto_path.append(proto_path[1:])
+        else:
+            src_proto_path.append(proto_path)
+    return src_proto_path, excluded_proto_path

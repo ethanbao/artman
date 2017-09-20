@@ -21,7 +21,7 @@
 """
 
 from __future__ import absolute_import
-from logging import DEBUG, INFO
+from logging import INFO
 import argparse
 from distutils.dir_util import copy_tree
 import io
@@ -31,7 +31,6 @@ import subprocess
 import sys
 
 from ruamel import yaml
-
 from taskflow import engines
 
 from artman.config import converter, loader
@@ -43,6 +42,7 @@ from artman.utils.logger import logger, setup_logging
 
 ARTMAN_DOCKER_IMAGE = 'googleapis/artman:0.4.16'
 RUNNING_IN_ARTMAN_DOCKER_TOKEN = 'RUNNING_IN_ARTMAN_DOCKER'
+
 
 def main(*args):
     """Main method of artman."""
@@ -126,8 +126,9 @@ def parse_args(*args):
         type=str,
         default='artman.yaml',
         help='[Optional] Specify path to artman config yaml, which can be '
-        'either an absolute path, or a path relative to current working '
-        'directory. Default to `artman.yaml`', )
+        'either an absolute path, or a path relative to the input '
+        'directory (specified by `--input-dir` flag). Default to '
+        '`artman.yaml`', )
     parser.add_argument(
         '--output-dir',
         type=str,
@@ -141,8 +142,9 @@ def parse_args(*args):
         help='[Optional] Directory with all input that is needed by artman, '
         'which include but not limited to API protos, service config yaml '
         'and GAPIC config yaml. It will be passed to protobuf compiler via '
-        '`-I` flag in order to generate descriptor. If not specified, it will '
-        'first look up in artman user config. If not found, it will warn user.',
+        '`-I` flag in order to generate descriptor. If not specified, it '
+        'will first look up in artman user config. If not found, an error '
+        'will be raised with instructions.',
     )
     parser.add_argument(
         '-v',
@@ -286,9 +288,7 @@ def normalize_flags(flags, user_config):
     elif pipeline_args['local_paths']['googleapis']:
         root_dir = pipeline_args['local_paths']['googleapis']
     else:
-        logger.error('`--root-dir` flag must be passed, or you will have to '
-                     'specify the `googleapis` field in artman user config.')
-        sys.exit(96)
+        root_dir = os.getcwd()
 
     artman_config_path = flags.config
     if not os.path.isfile(artman_config_path):
