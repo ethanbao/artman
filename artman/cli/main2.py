@@ -140,7 +140,7 @@ def parse_args(*args):
         type=str,
         default='',
         help='[Optional] Directory with all input that is needed by artman, '
-        'which include but not limited to API protos, service config yaml '
+        'which includes but is not limited to API protos, service config yaml '
         'and GAPIC config yaml. It will be passed to protobuf compiler via '
         '`-I` flag in order to generate descriptor. If not specified, it '
         'will first look up in artman user config. If not found, an error '
@@ -287,8 +287,11 @@ def normalize_flags(flags, user_config):
         root_dir = flags.root_dir
     elif pipeline_args['local_paths']['googleapis']:
         root_dir = pipeline_args['local_paths']['googleapis']
+        flags.root_dir = root_dir
     else:
-        root_dir = os.getcwd()
+        logger.error('`--root-dir` flag must be passed, or you will have to '
+                     'specify the `googleapis` field in artman user config.')
+        sys.exit(96)
 
     artman_config_path = flags.config
     if not os.path.isfile(artman_config_path):
