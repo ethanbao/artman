@@ -15,6 +15,7 @@
 from __future__ import absolute_import, unicode_literals
 import functools
 import os
+import subprocess
 import uuid
 
 import github3
@@ -56,7 +57,7 @@ class CreateGitHubBranch(task_base.TaskBase):
 
         # Ensure we know where we are, so we can make this task not
         # ultimately mutate the working directory.
-        original_directory = os.curdir
+        original_directory = os.getcwd()
 
         # Track our code directories, and use absolute paths, since we will
         # be moving around.
@@ -107,7 +108,11 @@ class CreateGitHubBranch(task_base.TaskBase):
                 src = path.get('src', '.')
                 dest = path.get('dest', '.')
                 artifact = path.get('artifact', 'gapic')
-
+                if artifact not in code_dirs:
+                    logger.warning(
+                        'Skipping folder remapping `%s` as artman cannot '
+                        'figure out its output location.' % artifact)
+                    continue
                 # We need a full absolute path for the source, based on
                 # the code's original output location.
                 src = os.path.abspath(os.path.join(code_dirs[artifact], src))
@@ -115,6 +120,8 @@ class CreateGitHubBranch(task_base.TaskBase):
                 # Actually copy the code.
                 self.exec_command(['git', 'rm', '-r', '--force',
                                    '--ignore-unmatch', dest])
+                if not os.path.exists(dest):
+                    os.makedirs(dest)
                 self.exec_command(['cp', '-rf', src, dest])
                 self.exec_command(['git', 'add', dest])
 
@@ -132,7 +139,10 @@ class CreateGitHubBranch(task_base.TaskBase):
             logger.info('Code pushed to GitHub as `%s` branch.' % branch_name)
 
             # Remove the original output directory.
-            self.exec_command(['rm', '-rf', output_dir])
+            try:
+                self.exec_command(['rm', '-rf', output_dir])
+            except subprocess.CalledProcessError:
+                logger.info('Failed to remove codegen dir, continue')
 
             # Return the branch name. This is needed in order to create a
             # pull request from that branch.
