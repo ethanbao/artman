@@ -144,7 +144,7 @@ def test_list_files_recursive():
         'test/fake-repos/fake-proto/excluded/excluded.proto',
     ]
     path = 'test/fake-repos/fake-proto'
-    assert list(protoc_utils.list_files_recursive(path)) == expected
+    assert sorted(list(protoc_utils.list_files_recursive(path))) == expected
 
 
 def test_php_proto_rename():
