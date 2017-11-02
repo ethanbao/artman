@@ -95,7 +95,7 @@ def _validate_artifact_config(artifact_config):
     # syntax and the file or folder must exist.
     if (artifact_config.language == Artifact.NODEJS and
             artifact_config.type == Artifact.GRPC):
-        raise ValueError('GRPC artifact type is disallowed for NodeJS.')
+        raise ValueError('GRPC artifact type is invalid for NodeJS.')
 
 
 def _normalize_artifact_config(artifact_config, artman_config_path):
