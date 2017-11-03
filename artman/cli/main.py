@@ -439,7 +439,6 @@ def _run_artman_in_docker(flags):
     root_dir = flags.root_dir
     output_dir = flags.output_dir
     artman_config_dirname = os.path.dirname(flags.config)
-    user_config = os.path.join(os.path.expanduser('~'), '.artman')
     docker_image = flags.image
 
     inner_artman_cmd_str = ' '.join(sys.argv[1:])
@@ -453,7 +452,6 @@ def _run_artman_in_docker(flags):
         '-v', '%s:%s' % (root_dir, root_dir),
         '-v', '%s:%s' % (output_dir, output_dir),
         '-v', '%s:%s' % (artman_config_dirname, artman_config_dirname),
-        '-v', '%s:/home/.artman' % user_config,
         '-w', root_dir,
         docker_image, '/bin/bash', '-c'
     ]

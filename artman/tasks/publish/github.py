@@ -56,7 +56,7 @@ class CreateGitHubBranch(task_base.TaskBase):
 
         # Ensure we know where we are, so we can make this task not
         # ultimately mutate the working directory.
-        original_directory = os.curdir
+        original_directory = os.path.abspath(os.curdir)
 
         # Track our code directories, and use absolute paths, since we will
         # be moving around.
@@ -132,7 +132,8 @@ class CreateGitHubBranch(task_base.TaskBase):
             logger.info('Code pushed to GitHub as `%s` branch.' % branch_name)
 
             # Remove the original output directory.
-            self.exec_command(['rm', '-rf', output_dir])
+            if not os.getenv('RUNNING_IN_ARTMAN_DOCKER'):
+              self.exec_command(['rm', '-rf', output_dir])
 
             # Return the branch name. This is needed in order to create a
             # pull request from that branch.
