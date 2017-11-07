@@ -172,7 +172,11 @@ def _calculate_git_repos_config(artifact_config, output_dir):
                 path['dest'] = map_entry.dest
             if map_entry.name:
                 path['artifact'] = map_entry.name
-            paths.append(path)
+            # The "proto" and "grpc" publishing artifact type is only used in
+            # Java. Ignore such configuration if defined for other languages.
+            if (map_entry.name not in ['grpc', 'proto']
+                or artifact_config.language != Artifact.JAVA):
+              paths.append(path)
         item['paths'] = paths
         result[target.name] = item
     return result

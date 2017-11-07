@@ -67,7 +67,7 @@ def main(*args):
                 pipeline.flow, engine='serial', store=pipeline.kwargs)
             engine.run()
         except:
-            logger.error(traceback.format_exc())
+            logger.fatal(traceback.format_exc())
         finally:
             _change_owner(flags, pipeline_name, pipeline_kwargs)
     else:
