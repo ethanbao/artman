@@ -462,8 +462,13 @@ def _run_artman_in_docker(flags):
         docker_image, '/bin/bash', '-c'
     ]
 
+    inner_artman_debug_cmd_str = inner_artman_cmd_str
+    # Because debug_cmd is run inside the Docker image, we want to
+    # make sure --local is set
+    if '--local' not in inner_artman_debug_cmd_str:
+        inner_artman_debug_cmd_str = '--local %s' % inner_artman_debug_cmd_str
     debug_cmd = list(base_cmd)
-    debug_cmd.append('"artman %s; bash"' % inner_artman_cmd_str)
+    debug_cmd.append('"artman %s; bash"' % inner_artman_debug_cmd_str)
 
     cmd = base_cmd
     cmd.append('artman --local %s' % (inner_artman_cmd_str))
@@ -504,9 +509,10 @@ def _change_owner(flags, pipeline_name, pipeline_kwargs):
                 os.chown(
                     os.path.join(root, f), user_host_id, group_host_id)
 
-    gapic_config_path = pipeline_kwargs['gapic_api_yaml'][0]
-    if os.path.exists(gapic_config_path):
-        if 'GapicConfigPipeline' == pipeline_name:
+    if pipeline_kwargs['gapic_api_yaml']:
+        gapic_config_path = pipeline_kwargs['gapic_api_yaml'][0]
+        if (os.path.exists(gapic_config_path) and
+                'GapicConfigPipeline' == pipeline_name):
             # There is a trick that the gapic config output is generated to
             # input directory, where it is supposed to be in order to be
             # used as an input for other artifact generation. With that
