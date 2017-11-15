@@ -126,7 +126,7 @@ class LocalStagingTests(unittest.TestCase):
         )
 
         # Establish the commands we expect to have been called.
-        expected_commands = [
+        expected_commands = (
             'rm -rf /rr/api-client-staging/gapic/pubsub',
             'cp -rf /path/to/gapic /rr/api-client-staging/gapic/pubsub',
             'rm -rf /rr/api-client-staging/grpc/pubsub',
@@ -134,17 +134,17 @@ class LocalStagingTests(unittest.TestCase):
             'rm -rf /path/to/gapic',
             'rm -rf /path/to/grpc',
             'rm -rf /tmp/out',
-        ]
+        )
         assert len(exec_command.mock_calls) == len(expected_commands)
         for cmd, call in zip(expected_commands, exec_command.mock_calls):
             _, args, _ = call
             assert ' '.join(args[0]) == cmd
 
         # Establish the expected log entires.
-        expected_messages = [
+        expected_messages = (
             'Code generated: /rr/api-client-staging/gapic/pubsub',
             'Code generated: /rr/api-client-staging/grpc/pubsub',
-        ]
+        )
         assert len(success.mock_calls) == len(expected_messages)
         for msg, call in zip(expected_messages, success.mock_calls):
             _, args, _ = call
@@ -171,22 +171,22 @@ class LocalStagingTests(unittest.TestCase):
         )
 
         # Establish the commands we expect to have been called.
-        expected_commands = [
+        expected_commands = (
             'git clone https://github.com/googleapis/api-client-staging.git '
             '/tmp/out/api-client-staging',
             'rm -rf /tmp/out/api-client-staging/gapic/pubsub',
             'cp -rf /path/to/gapic /tmp/out/api-client-staging/gapic/pubsub',
             'rm -rf /path/to/gapic',
-        ]
+        )
         assert len(exec_command.mock_calls) == len(expected_commands)
         for cmd, call in zip(expected_commands, exec_command.mock_calls):
             _, args, _ = call
             assert ' '.join(args[0]) == cmd
 
         # Establish the expected log entires.
-        expected_messages = [
+        expected_messages = (
             'Code generated: /tmp/out/api-client-staging/gapic/pubsub',
-        ]
+        )
         assert len(success.mock_calls) == len(expected_messages)
         for msg, call in zip(expected_messages, success.mock_calls):
             _, args, _ = call
