@@ -39,9 +39,9 @@ RUN apt-get update \
 # Currently, the stable version is still 2.6.x, which can only handle proto2
 # syntax, so we have to download our own.
 RUN mkdir -p /usr/src/protoc/ \
-  && curl --location https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip > /usr/src/protoc/protoc-3.3.0.zip \
+  && curl --location https://github.com/google/protobuf/releases/download/v3.4.0/protoc-3.4.0-linux-x86_64.zip > /usr/src/protoc/protoc-3.4.0.zip \
   && cd /usr/src/protoc/ \
-  && unzip protoc-3.3.0.zip \
+  && unzip protoc-3.4.0.zip \
   && ln -s /usr/src/protoc/bin/protoc /usr/local/bin/protoc
 
 # Install GRPC and Protobuf.
@@ -168,12 +168,12 @@ RUN curl -SL $DOTNET_SDK_DOWNLOAD_URL --output dotnet.tar.gz \
 # Install couple of git repos
 RUN git clone https://github.com/googleapis/googleapis \
   && cd googleapis \
-  && git checkout d9440e4e79e04606b28d3ce17284e46efdcaeda8 \
+  && git checkout 8168220195ccf020c649125cf944fa0ebda75419 \
   && cd .. \
   && rm -rf /googleapis/.git/
 RUN git clone https://github.com/googleapis/toolkit \
   && cd toolkit/ \
-  && git checkout 090d5dac3d267d29adffc002c13bedaa1e6720bf \
+  && git checkout 72d8d828d503b4ac25d617af12b34d72b335f2ab \
   && cd .. \
   && rm -rf /toolkit/.git/
 ENV TOOLKIT_HOME /toolkit
