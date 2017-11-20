@@ -59,7 +59,10 @@ class LocalStagingTask(task_base.TaskBase):
         if not api_repo:
             api_repo = os.path.join(output_dir, repo_name)
             if os.path.exists(api_repo):
-                self.exec_command(['rm', '-rf', api_repo])
+                logger.fatal(
+                    'Local repo folder `%s` exists. Please manually remove the '
+                    'folder, or point to another folder through artman user '
+                    'config or `artman --output-dir` flag.' % api_repo)
             repo = git_repo['location']
             # This only works for public repo for now.
             if repo.startswith('git@github.com:'):

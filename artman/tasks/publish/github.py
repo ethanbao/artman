@@ -66,11 +66,12 @@ class CreateGitHubBranch(task_base.TaskBase):
 
         # Check out the code from GitHub.
         repo = git_repo['location']
-        logger.info('Checking out fresh clone of %s.' % repo)
         try:
             if repo.startswith('git@github.com:'):
                 repo = 'https://%s:%s@github.com/%s' % (
                     github['username'], github['token'], repo[15:])
+            logger.info('Checking out fresh clone of %s to %s.'
+                        % (repo, repo_temp_dir))
             self.exec_command(['git', 'clone', repo, repo_temp_dir])
 
             # Create a new branch for this API.
@@ -112,9 +113,14 @@ class CreateGitHubBranch(task_base.TaskBase):
                 # the code's original output location.
                 src = os.path.abspath(os.path.join(code_dirs[artifact], src))
 
+                if not src.endswith('.'):
+                    src = os.path.join(src, '.')
+
                 # Actually copy the code.
                 self.exec_command(['git', 'rm', '-r', '--force',
                                    '--ignore-unmatch', dest])
+                if not os.path.exists(dest):
+                    os.makedirs(dest)
                 self.exec_command(['cp', '-rf', src, dest])
                 self.exec_command(['git', 'add', dest])
 
