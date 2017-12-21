@@ -179,7 +179,7 @@ def _calculate_git_repos_config(artifact_config, output_dir):
               paths.append(path)
             else:
               logger.warning('"%" publishing artifact type is only used in '
-                             'Java. Ignore that config.')
+                             'Java. Ignore that config.' % map_entry.name)
         item['paths'] = paths
         result[target.name] = item
     return result
