@@ -64,6 +64,10 @@ def test_library_example(googleapis_dir):
         golden_dir, 'actual_library_example.golden')
     with io.open(actual_output_file, 'w+') as output:
         for item in sorted(actual):
+            # TODO(ethanbao): Remove this once such gradle-generated class files
+            # get cleaned up in Java codegen task.
+            if item.endswith('.class'):
+                continue
             output.write('%s\n' % item)
     assert expected == set(actual), \
         "Check the actual output at %s" % actual_output_file
