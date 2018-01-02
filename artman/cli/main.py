@@ -275,6 +275,9 @@ def normalize_flags(flags, user_config):
     """
     if flags.root_dir:
         flags.root_dir = os.path.abspath(flags.root_dir)
+        flags.config = os.path.join(flags.root_dir, flags.config)
+    else:
+        flags.config = os.path.abspath(flags.config)
     flags.output_dir = os.path.abspath(flags.output_dir)
     flags.config = os.path.abspath(flags.config)
     pipeline_args = {}
