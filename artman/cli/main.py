@@ -279,7 +279,6 @@ def normalize_flags(flags, user_config):
     else:
         flags.config = os.path.abspath(flags.config)
     flags.output_dir = os.path.abspath(flags.output_dir)
-    flags.config = os.path.abspath(flags.config)
     pipeline_args = {}
 
     # Determine logging verbosity and then set up logging.
