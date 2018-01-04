@@ -227,6 +227,14 @@ def parse_args(*args):
         action='store_true',
         help='[Optional] When specified, artman will skip the remote '
         'publishing step.', )
+    parser_publish.add_argument(
+        '--local-repo-dir',
+        type=str,
+        default=None,
+        help='[Optional] When specified, artman will skip the lookup local '
+        'publishing configuration in ~/.artman.config.yaml, nor clone a new '
+        'github repo. Instead, it will use the specified directory to stage '
+        'generated result. This is only working when under dry run mode.', )
     parser_publish.set_defaults(dry_run=False)
 
     return parser.parse_args(args=args)
@@ -290,6 +298,14 @@ def normalize_flags(flags, user_config):
     # toolkit on his or her machine.
     pipeline_args['local_paths'] = support.parse_local_paths(
         user_config, flags.root_dir)
+
+    if flags.local_repo_dir:
+        if not flags.dry_run:
+            logger.error('`--dry-run` flag must be passed when '
+                         '`--local-repo-dir` is specified')
+            sys.exit(96)
+        flags.local_repo_dir = os.path.abspath(flags.local_repo_dir)
+        pipeline_args['local_repo_dir'] = flags.local_repo_dir
 
     if flags.root_dir:
         root_dir = flags.root_dir
@@ -462,9 +478,11 @@ def _run_artman_in_docker(flags):
         '-v', '%s:%s' % (root_dir, root_dir),
         '-v', '%s:%s' % (output_dir, output_dir),
         '-v', '%s:%s' % (artman_config_dirname, artman_config_dirname),
-        '-w', root_dir,
-        docker_image, '/bin/bash', '-c'
+        '-w', root_dir
     ]
+    if flags.local_repo_dir:
+        base_cmd.extend(['-v', '%s:%s' % (flags.local_repo_dir, flags.local_repo_dir)])
+    base_cmd.extend([docker_image, '/bin/bash', '-c'])
 
     inner_artman_debug_cmd_str = inner_artman_cmd_str
     # Because debug_cmd is run inside the Docker image, we want to
@@ -504,14 +522,13 @@ def _change_owner(flags, pipeline_name, pipeline_kwargs):
         return
     # Change ownership of output directory.
     if os.path.exists(flags.output_dir):
-        for root, dirs, files in os.walk(flags.output_dir):
-            os.chown(root, user_host_id, group_host_id)
-            for d in dirs:
-                os.chown(
-                    os.path.join(root, d), user_host_id, group_host_id)
-            for f in files:
-                os.chown(
-                    os.path.join(root, f), user_host_id, group_host_id)
+        _change_folder_owner(flags.output_dir, user_host_id, group_host_id)
+
+    # Change the local repo directory if specified.
+    if 'local_repo_dir' in pipeline_kwargs:
+        local_repo_dir = pipeline_kwargs['local_repo_dir']
+        if (os.path.exists(local_repo_dir)):
+            _change_folder_owner(local_repo_dir, user_host_id, group_host_id)
 
     if pipeline_kwargs['gapic_api_yaml']:
         gapic_config_path = pipeline_kwargs['gapic_api_yaml'][0]
@@ -524,6 +541,17 @@ def _change_owner(flags, pipeline_name, pipeline_kwargs):
             # but the input folder. Make the explicit chown in this case.
             os.chown(gapic_config_path, user_host_id, group_host_id)
 
+
+def _change_folder_owner(folder, user_host_id, group_host_id):
+    """Change ownership recursively for everything under the given folder."""
+    for root, dirs, files in os.walk(folder):
+        os.chown(root, user_host_id, group_host_id)
+        for d in dirs:
+            os.chown(
+                os.path.join(root, d), user_host_id, group_host_id)
+        for f in files:
+            os.chown(
+                os.path.join(root, f), user_host_id, group_host_id)
 
 if __name__ == "__main__":
     main()
