@@ -299,7 +299,7 @@ def normalize_flags(flags, user_config):
     pipeline_args['local_paths'] = support.parse_local_paths(
         user_config, flags.root_dir)
 
-    if flags.local_repo_dir:
+    if flags.subcommand == 'publish' and flags.local_repo_dir:
         if not flags.dry_run:
             logger.error('`--dry-run` flag must be passed when '
                          '`--local-repo-dir` is specified')
