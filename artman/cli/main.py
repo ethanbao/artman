@@ -231,10 +231,10 @@ def parse_args(*args):
         '--local-repo-dir',
         type=str,
         default=None,
-        help='[Optional] When specified, artman will skip the lookup local '
+        help='[Optional] When specified, artman will neither look up the '
         'publishing configuration in ~/.artman.config.yaml, nor clone a new '
         'github repo. Instead, it will use the specified directory to stage '
-        'generated result. This is only working when under dry run mode.', )
+        'generated result. This only work under dry run mode.', )
     parser_publish.set_defaults(dry_run=False)
 
     return parser.parse_args(args=args)
@@ -510,7 +510,7 @@ def _run_artman_in_docker(flags):
 
 
 def _change_owner(flags, pipeline_name, pipeline_kwargs):
-    """Change file/folder ownership if necessary."""
+    """Change file/directory ownership if necessary."""
     user_host_id = int(os.getenv('HOST_USER_ID', 0))
     group_host_id = int(os.getenv('HOST_GROUP_ID', 0))
     # When artman runs in Docker instance, all output files are by default
@@ -522,13 +522,13 @@ def _change_owner(flags, pipeline_name, pipeline_kwargs):
         return
     # Change ownership of output directory.
     if os.path.exists(flags.output_dir):
-        _change_folder_owner(flags.output_dir, user_host_id, group_host_id)
+        _change_directory_owner(flags.output_dir, user_host_id, group_host_id)
 
     # Change the local repo directory if specified.
     if 'local_repo_dir' in pipeline_kwargs:
         local_repo_dir = pipeline_kwargs['local_repo_dir']
         if (os.path.exists(local_repo_dir)):
-            _change_folder_owner(local_repo_dir, user_host_id, group_host_id)
+            _change_directory_owner(local_repo_dir, user_host_id, group_host_id)
 
     if pipeline_kwargs['gapic_api_yaml']:
         gapic_config_path = pipeline_kwargs['gapic_api_yaml'][0]
@@ -537,14 +537,14 @@ def _change_owner(flags, pipeline_name, pipeline_kwargs):
             # There is a trick that the gapic config output is generated to
             # input directory, where it is supposed to be in order to be
             # used as an input for other artifact generation. With that
-            # the gapic config output is not located in the output folder,
-            # but the input folder. Make the explicit chown in this case.
+            # the gapic config output is not located in the output directory,
+            # but the input directory. Make the explicit chown in this case.
             os.chown(gapic_config_path, user_host_id, group_host_id)
 
 
-def _change_folder_owner(folder, user_host_id, group_host_id):
-    """Change ownership recursively for everything under the given folder."""
-    for root, dirs, files in os.walk(folder):
+def _change_directory_owner(directory, user_host_id, group_host_id):
+    """Change ownership recursively for everything under the given directory."""
+    for root, dirs, files in os.walk(directory):
         os.chown(root, user_host_id, group_host_id)
         for d in dirs:
             os.chown(
