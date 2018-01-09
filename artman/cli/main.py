@@ -70,7 +70,7 @@ def main(*args):
             engine.run()
         except:
             logger.error(traceback.format_exc())
-            sys.exit(128)
+            sys.exit(32)
         finally:
             _change_owner(flags, pipeline_name, pipeline_kwargs)
     else:
@@ -486,7 +486,7 @@ def _run_artman_in_docker(flags):
         logger.error(
             'Artman execution failed. For additional logging, re-run the '
             'command with the "--verbose" flag')
-        sys.exit(128)
+        sys.exit(32)
     finally:
         logger.debug('For further inspection inside docker container, run `%s`'
                      % ' '.join(debug_cmd))
