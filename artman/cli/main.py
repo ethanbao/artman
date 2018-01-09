@@ -25,12 +25,14 @@ from logging import INFO
 import argparse
 from distutils.dir_util import copy_tree
 import io
+import json
 import os
 import pprint
 import subprocess
 import sys
 import traceback
 
+from google.protobuf import json_format
 import pkg_resources
 from ruamel import yaml
 from taskflow import engines
@@ -45,6 +47,13 @@ from artman.utils.logger import logger, setup_logging
 VERSION = pkg_resources.get_distribution('googleapis-artman').version
 ARTMAN_DOCKER_IMAGE = 'googleapis/artman:%s' % VERSION
 RUNNING_IN_ARTMAN_DOCKER_TOKEN = 'RUNNING_IN_ARTMAN_DOCKER'
+
+# Error messages
+CONFIG_NOT_FOUND_ERROR_MESSAGE_FORMAT = (
+    'Artman YAML cannot be found at `%s`. Please check the file location.')
+INVALID_CONFIG_ERROR_MESSAGE_FORMAT = (
+    'Artman YAML %s is invalid. Please pass a valid Artman YAML (e.g. '
+    'https://github.com/googleapis/googleapis/blob/master/google/cloud/speech/artman_speech_v1.yaml).')
 
 
 def main(*args):
@@ -286,6 +295,12 @@ def normalize_flags(flags, user_config):
         flags.config = os.path.join(flags.root_dir, flags.config)
     else:
         flags.config = os.path.abspath(flags.config)
+    try:
+        _validate_config_flag(flags.config)
+    except ValueError as ve:
+        logger.error(ve)
+        sys.exit(64)
+
     flags.output_dir = os.path.abspath(flags.output_dir)
     pipeline_args = {}
 
@@ -552,6 +567,35 @@ def _change_directory_owner(directory, user_host_id, group_host_id):
         for f in files:
             os.chown(
                 os.path.join(root, f), user_host_id, group_host_id)
+
+
+def _validate_config_flag(artman_yaml):
+  """Validates the artman config yaml.
+
+  Args:
+    artman_yaml: A string specifying the location of the Artman YAML.
+
+  Raises:
+      ValueError: if the specified Artman YAML is invalid.
+  """
+  if not os.path.exists(artman_yaml):
+    raise ValueError(CONFIG_NOT_FOUND_ERROR_MESSAGE_FORMAT % artman_yaml)
+
+  with open(artman_yaml, 'r') as f:
+      data = yaml.load(f, Loader=yaml.Loader)
+      if not data:
+          raise ValueError(INVALID_CONFIG_ERROR_MESSAGE_FORMAT % artman_yaml)
+      # Convert yaml into json file as protobuf python library support
+      # parsing of protobuf in json or text format, not yaml format.
+      artman_config_json_string = json.dumps(data)
+
+  config_pb = Config()
+  try:
+      json_format.Parse(artman_config_json_string, config_pb)
+  except json_format.ParseError:
+      err_msg = INVALID_CONFIG_ERROR_MESSAGE_FORMAT % artman_yaml
+      raise ValueError(err_msg)
+
 
 if __name__ == "__main__":
     main()
