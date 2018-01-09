@@ -52,9 +52,11 @@ class LocalStagingTask(task_base.TaskBase):
         if repo_name.endswith('.git'):
             repo_name = repo_name[:-4]
 
-        # Artman will find the local repo dir in the following order:
-        # 1. Check whether an explicit `--local_repo_dir` flag is passed.
+        # Artman will find the local repo dir via the following steps:
+        # 1. Check whether an explicit `--local_repo_dir` flag is passed. Is so,
+        #    use that value.
         # 2. Check whether a matched local repo dir is specified in user config.
+        #    If so, use that value.
         # 3. Clones the repo to output_dir, and use the cloned repo dir.
         repo_name_underscore = repo_name.replace('-', '_')
         if local_repo_dir:

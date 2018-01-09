@@ -234,7 +234,7 @@ def parse_args(*args):
         help='[Optional] When specified, artman will neither look up the '
         'publishing configuration in ~/.artman.config.yaml, nor clone a new '
         'github repo. Instead, it will use the specified directory to stage '
-        'generated result. This only work under dry run mode.', )
+        'generated result. This only works under --dry-run mode.', )
     parser_publish.set_defaults(dry_run=False)
 
     return parser.parse_args(args=args)
