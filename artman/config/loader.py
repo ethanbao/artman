@@ -24,6 +24,14 @@ import yaml
 from google.protobuf import json_format
 
 from artman.config.proto.config_pb2 import Artifact, Config
+from artman.utils.logger import logger
+
+# Error messages
+CONFIG_NOT_FOUND_ERROR_MESSAGE_FORMAT = (
+    'Artman YAML cannot be found at `%s`. Please check the file location.')
+# TODO(ethanbao): Add a reference link once Artman schema spec is publicly
+# available.
+INVALID_CONFIG_ERROR_MESSAGE_FORMAT = 'Artman YAML %s is invalid.'
 
 
 def load_artifact_config(artman_config_path, artifact_name):
@@ -56,12 +64,19 @@ def _read_artman_config(artman_yaml_path):
 
 def _parse(artman_yaml_path):
     """Parse artman yaml config into corresponding protobuf."""
-    with open(artman_yaml_path, 'r') as f:
-        # Convert yaml into json file as protobuf python load support paring of
-        # protobuf in json or text format, not yaml.
-        artman_config_json_string = json.dumps(yaml.load(f))
-    config_pb = Config()
-    json_format.Parse(artman_config_json_string, config_pb)
+    if not os.path.exists(artman_yaml_path):
+      raise ValueError(CONFIG_NOT_FOUND_ERROR_MESSAGE_FORMAT % artman_yaml_path)
+
+    try:
+        with open(artman_yaml_path, 'r') as f:
+            # Convert yaml into json file as protobuf python load support paring of
+            # protobuf in json or text format, not yaml.
+            artman_config_json_string = json.dumps(yaml.load(f))
+        config_pb = Config()
+        json_format.Parse(artman_config_json_string, config_pb)
+    except (json_format.ParseError, yaml.parser.ParserError) as e:
+        logger.error(INVALID_CONFIG_ERROR_MESSAGE_FORMAT % artman_yaml_path)
+        raise ValueError(str(e))
 
     return config_pb
 

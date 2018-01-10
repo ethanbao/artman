@@ -122,23 +122,3 @@ class NormalizeFlagTests(unittest.TestCase):
         assert args['publish'] == 'github'
         assert args['github']['username'] == 'test'
         assert args['github']['token'] == 'token'
-
-
-class ConfigValidationTest(unittest.TestCase):
-    def testValidateConfigFlagPass(self):
-        artman_yaml = os.path.join(CUR_DIR, 'data/artman_test.yaml')
-        main._validate_config_flag(artman_yaml)
-
-    def testValidateConfigFlagConfigNotFound(self):
-        artman_yaml = 'does_no_exist.yaml'
-        with pytest.raises(ValueError) as ve:
-            main._validate_config_flag(artman_yaml)
-            expected = main.CONFIG_NOT_FOUND_ERROR_MESSAGE_FORMAT % artman_yaml
-            assert expected == ve.exception.message
-
-    def testValidateConfigFlagPassingGapicConfig(self):
-        artman_yaml = os.path.join(CUR_DIR, 'data/test_gapic.yaml')
-        with pytest.raises(ValueError) as ve:
-            main._validate_config_flag(artman_yaml)
-            expected = main.INVALID_CONFIG_ERROR_MESSAGE_FORMAT % artman_yaml
-            assert expected == ve.exception.message
