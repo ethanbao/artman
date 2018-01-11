@@ -31,11 +31,11 @@ class ArtmanYamlParserTest(unittest.TestCase):
         with pytest.raises(ValueError) as excinfo:
             loader._parse(artman_yaml)
         expected = '"googleapis.artman.Config" has no field named "a".'
-        assert expected in excinfo.value.message
+        assert expected in str(excinfo.value)
 
     def testValidArtmanYamlNotFound(self):
         artman_yaml = 'does_no_exist.yaml'
         with pytest.raises(ValueError) as excinfo:
             loader._parse(artman_yaml)
         expected = loader.CONFIG_NOT_FOUND_ERROR_MESSAGE_FORMAT % artman_yaml
-        assert expected == excinfo.value.message
+        assert expected == str(excinfo.value)
