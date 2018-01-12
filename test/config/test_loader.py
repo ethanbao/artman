@@ -15,6 +15,7 @@
 import os
 import unittest
 
+from google.protobuf import json_format
 import pytest
 
 from artman.config import loader
@@ -28,7 +29,7 @@ class ArtmanYamlParserTest(unittest.TestCase):
 
     def testInvalidArtmanYaml(self):
         artman_yaml = os.path.join(CUR_DIR, 'testdata/invalid_artman.yaml')
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(json_format.ParseError) as excinfo:
             loader._parse(artman_yaml)
         expected = '"googleapis.artman.Config" has no field named "a".'
         assert expected in str(excinfo.value)

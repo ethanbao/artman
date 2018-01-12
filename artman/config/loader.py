@@ -19,7 +19,6 @@ config.
 from __future__ import absolute_import
 import json
 import os
-import traceback
 
 from google.protobuf import json_format
 import yaml
@@ -75,10 +74,9 @@ def _parse(artman_yaml_path):
             artman_config_json_string = json.dumps(yaml.load(f))
         config_pb = Config()
         json_format.Parse(artman_config_json_string, config_pb)
-    except (json_format.ParseError, yaml.parser.ParserError) as e:
-        logger.debug(traceback.format_exc())
+    except (json_format.ParseError, yaml.parser.ParserError):
         logger.error(INVALID_CONFIG_ERROR_MESSAGE_FORMAT % artman_yaml_path)
-        raise ValueError(str(e))
+        raise
 
     return config_pb
 
