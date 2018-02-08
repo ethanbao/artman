@@ -67,49 +67,12 @@ def parse_github_credentials(config, argv_flags):
     }
 
 
-def parse_local_paths(user_config, root_dir):
-    """Parse all relevant local flags, given appropriate user config and user.
+def resolve(name, flags, default=None):
+    """Resolve the provided option from flags.
 
-    Args:
-        user_config (dict): The user config, usually ~/.artman/config.yaml
-        input_dir (str): Path of artman local input dir.
-
-    Returns:
-        dict: A dictionary with, at minimum, the following keys:
-            reporoot, artman, api_client_staging, googleapis toolkit
+    If not set, use the default.
     """
-    local_paths = user_config.get('local_paths', {})
-
-    # Set all defaults.
-    local_paths.setdefault('reporoot', '..')
-    local_paths.setdefault('artman', '{reporoot}/artman')
-    local_paths.setdefault('googleapis', '{reporoot}/googleapis')
-    local_paths.setdefault('toolkit', '{reporoot}/toolkit')
-
-    # Only googleapis can be set with flags (this allows a temporary pointer
-    # to googleapis-private if the developer uses a different directory for
-    # that).
-    if root_dir:
-        local_paths['googleapis'] = root_dir
-
-    # Make all paths absolute, resolve reporoot, and expand the ~.
-    for key, path in local_paths.items():
-        path = path.format(reporoot=local_paths['reporoot'])
-        path = os.path.realpath(os.path.expanduser(path)).rstrip('/')
-        local_paths[key] = path
-
-    # Done; return the local paths. These are used for substitution in
-    # later configuration files.
-    return local_paths
-
-
-def resolve(name, user_config, flags, default=None):
-    """Resolve the provided option from either user_config or flags.
-
-    If neither is set, use the default.
-    If both are set, the flags take precedence.
-    """
-    answer = user_config.get(name, default)
+    answer = default
     if getattr(flags, name, None):
         answer = getattr(flags, name)
     return answer
