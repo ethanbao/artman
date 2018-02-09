@@ -60,8 +60,8 @@ def read_user_config(artman_user_config_path):
     artman_user_config_path = os.path.expanduser(artman_user_config_path)
     if not os.path.exists(artman_user_config_path):
       logger.warn(
-          "No artman user config defined. Use the default one for this "
-          "execution. Run `configure-artman` to set up user config.")
+          'No artman user config defined. Use the default one for this '
+          'execution. Run `configure-artman` to set up user config.')
 
     try:
         with open(artman_user_config_path, 'r') as f:

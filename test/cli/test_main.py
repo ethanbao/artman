@@ -57,12 +57,14 @@ class ParseArgsTests(unittest.TestCase):
 
 
 class ReadUserConfigTests(unittest.TestCase):
-    @mock.patch.object(logger, 'critical')
+    @mock.patch.object(logger, 'warn')
     def test_no_config(self, critical):
         flags = Namespace(user_config='/bogus/file.yaml', command='not_init')
         with pytest.raises(SystemExit):
             main.read_user_config(flags)
-        critical.assert_called_once_with('No user configuration found.')
+        warn.assert_called_once_with(
+            'No artman user config defined. Use the default one for this '
+            'execution. Run `configure-artman` to set up user config.')
 
     @mock.patch.object(io, 'open')
     @mock.patch.object(os.path, 'isfile')
