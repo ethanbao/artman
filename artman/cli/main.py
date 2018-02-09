@@ -57,7 +57,7 @@ def main(*args):
 
     # Get to a normalized set of arguments.
     flags = parse_args(*args)
-    user_config = read_user_config(flags)
+    user_config = loader.read_user_config(flags.user_config)
     _adjust_root_dir(flags.root_dir)
     pipeline_name, pipeline_kwargs = normalize_flags(flags, user_config)
 
@@ -241,18 +241,6 @@ def parse_args(*args):
     return parser.parse_args(args=args)
 
 
-def read_user_config(flags):
-    """Read the user config from disk and return it.
-
-    Args:
-        flags (argparse.Namespace): The flags from sys.argv.
-
-    Returns:
-        UserConfig: The user config.
-    """
-    return loader.read_user_config(flags.user_config)
-
-
 def normalize_flags(flags, user_config):
     """Combine the argparse flags and user configuration together.
 
@@ -391,7 +379,7 @@ def normalize_flags(flags, user_config):
                 pipeline_args['publish'] = 'github'
                 pipeline_args['github'] = support.parse_github_credentials(
                     argv_flags=flags,
-                    config=user_config.get('github', {}), )
+                    github_config=user_config.github)
             repos = pipeline_args.pop('git_repos')
             pipeline_args['git_repo'] = support.select_git_repo(
                 repos, publishing_config.name)

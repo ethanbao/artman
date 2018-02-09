@@ -20,7 +20,7 @@ import sys
 from artman.utils.logger import logger
 
 
-def parse_github_credentials(config, argv_flags):
+def parse_github_credentials(github_config, argv_flags):
     """Determine the appropriate GitHub credentials.
 
     If there are no vaild credentials, error out with a useful message
@@ -37,8 +37,8 @@ def parse_github_credentials(config, argv_flags):
     """
     # Determine whether we have valid credentials.
     valid = all([
-        'username' in config or argv_flags.github_username,
-        'token' in config or argv_flags.github_token,
+        github_config.username or argv_flags.github_username,
+        github_config.token or argv_flags.github_token,
     ])
 
     # No valid credentials, give a helpful error.
@@ -62,8 +62,8 @@ def parse_github_credentials(config, argv_flags):
 
     # Return the appropriate credentials.
     return {
-        'username': argv_flags.github_username or config['username'],
-        'token': argv_flags.github_token or config['token'],
+        'username': argv_flags.github_username or github_config.username,
+        'token': argv_flags.github_token or github_config.token,
     }
 
 
