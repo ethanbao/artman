@@ -271,8 +271,6 @@ def normalize_flags(flags, user_config):
     # Save local paths, if applicable.
     # This allows the user to override the path to api-client-staging or
     # toolkit on his or her machine.
-    #pipeline_args['local_paths'] = support.parse_local_paths(
-    #    user_config, flags.root_dir)
     pipeline_args['root_dir'] = root_dir
     pipeline_args['toolkit'] = user_config.local.toolkit
 
@@ -283,15 +281,6 @@ def normalize_flags(flags, user_config):
             sys.exit(96)
         flags.local_repo_dir = os.path.abspath(flags.local_repo_dir)
         pipeline_args['local_repo_dir'] = flags.local_repo_dir
-    #if flags.root_dir:
-    #    root_dir = flags.root_dir
-    #elif pipeline_args['local_paths']['googleapis']:
-    #    root_dir = pipeline_args['local_paths']['googleapis']
-    #    flags.root_dir = root_dir
-    #else:
-    #    logger.error('`--root-dir` flag must be passed, or you will have to '
-    #                 'specify the `googleapis` field in artman user config.')
-    #    sys.exit(96)
 
     artman_config_path = flags.config
     if not os.path.isfile(artman_config_path):
@@ -320,9 +309,6 @@ def normalize_flags(flags, user_config):
     with io.open(tmp_legacy_config_yaml, 'w') as outfile:
         yaml.dump(legacy_config_dict, outfile, default_flow_style=False)
 
-    #googleapis = os.path.realpath(
-        #os.path.expanduser(
-        #    pipeline_args['local_paths']['googleapis'], ))
     config = ','.join([
         '{artman_config_path}',
         '{googleapis}/gapic/lang/{shared_config_name}',
