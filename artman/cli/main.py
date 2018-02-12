@@ -265,7 +265,9 @@ def normalize_flags(flags, user_config):
     pipeline_args = {}
 
     # Determine logging verbosity and then set up logging.
-    verbosity = flags.verbosity if flags.verbosity else INFO
+    verbosity = INFO
+    if getattr(flags, 'verbosity', None):
+        verbosity = getattr(flags, 'verbosity')
     setup_logging(verbosity)
 
     # Save local paths, if applicable.
