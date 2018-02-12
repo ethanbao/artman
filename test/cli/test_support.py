@@ -55,18 +55,6 @@ class ParseGitHubCredentialsTests(unittest.TestCase):
             support.parse_github_credentials(github_config, flags)
 
 
-class ResolveTests(unittest.TestCase):
-    def test_neither_set(self):
-        flags = argparse.Namespace()
-        result = support.resolve('foo', flags, default=42)
-        assert result == 42
-
-    def test_neither_set_no_default(self):
-        flags = argparse.Namespace()
-        result = support.resolve('foo', flags)
-        assert result is None
-
-
 class SelectGitRepoTests(unittest.TestCase):
     def setUp(self):
         self.git_repos = {

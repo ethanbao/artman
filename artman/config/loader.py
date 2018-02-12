@@ -34,7 +34,7 @@ CONFIG_NOT_FOUND_ERROR_MESSAGE_FORMAT = (
 # TODO(ethanbao): Add a reference link once Artman schema spec is publicly
 # available.
 INVALID_CONFIG_ERROR_MESSAGE_FORMAT = 'Artman YAML %s is invalid.'
-INVALID_USER_CONFIG_ERROR_MESSAGE_FORMAT = 'Artman YAML %s is invalid.'
+INVALID_USER_CONFIG_ERROR_MESSAGE_FORMAT = 'Artman user YAML %s is invalid.'
 
 
 def load_artifact_config(artman_config_path, artifact_name):

@@ -75,7 +75,9 @@ def _configure_local_config():
     # Ask the user for a local toolkit location.
     while not answer.toolkit:
         location = six.moves.input(
-            'Where is your local toolkit? Please provide an absolute path: ')
+            'Where is your local toolkit repository? (If you do not have a '
+            'toolkit repository, clone https://github.com/googleapis/toolkit/. '
+            'Please provide an absolute path: ')
         if location:
             answer.toolkit = location
 
@@ -102,31 +104,13 @@ def _configure_github_config():
 
     return answer
 
-def _convert_json(d):
-    """Convert the dict to turn all key into snake case."""
-    new_d = {}
-    for k, v in d.items():
-        if isinstance(v, dict):
-            new_d[stringcase.snakecase(k)] = _convert_json(v)
-        elif isinstance(v, list):
-            if isinstance(v[0], dict):
-                result = []
-                for d2 in v:
-                    result.append(_convert_json(d2))
-                new_d[stringcase.snakecase(k)] = result
-            else:
-                new_d[stringcase.snakecase(k)] = v
-        else:
-            new_d[stringcase.snakecase(k)] = v
-    return new_d
-
 
 def _write_pb_to_yaml(pb, output):
     # Add yaml representer so that yaml dump can dump OrderedDict. The code
     # is coming from https://stackoverflow.com/questions/16782112.
     yaml.add_representer(OrderedDict, _represent_ordereddict)
 
-    json_obj = _order_dict(_convert_json(json.loads(MessageToJson(pb))))
+    json_obj = _order_dict(json.loads(MessageToJson(pb)))
     with open(output, 'w') as outfile:
         yaml.dump(json_obj, outfile, default_flow_style=False)
 

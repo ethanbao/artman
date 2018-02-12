@@ -67,17 +67,6 @@ def parse_github_credentials(github_config, argv_flags):
     }
 
 
-def resolve(name, flags, default=None):
-    """Resolve the provided option from flags.
-
-    If not set, use the default.
-    """
-    answer = default
-    if getattr(flags, name, None):
-        answer = getattr(flags, name)
-    return answer
-
-
 def select_git_repo(git_repos, target_repo):
     """Select the appropriate Git repo based on YAML config and CLI arguments.
 
