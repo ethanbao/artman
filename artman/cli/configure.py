@@ -76,7 +76,7 @@ def _configure_local_config():
     while not answer.toolkit:
         location = six.moves.input(
             'Where is your local toolkit repository? (If you do not have a '
-            'toolkit repository, clone https://github.com/googleapis/toolkit/. '
+            'toolkit repository, clone https://github.com/googleapis/toolkit/) '
             'Please provide an absolute path: ')
         if location:
             answer.toolkit = location
