@@ -308,7 +308,7 @@ jobs:
 
 workflows:
   version: 2
-  tests:
+  build_test_deploy:
     jobs:
       - unit-python2.7
       - unit-python3.4
@@ -323,8 +323,6 @@ workflows:
       - smoke-python
       - smoke-ruby
       - golden_test_and_optional_smoketest_all
-  build_and_release_docker_image:
-    jobs:
       - build_and_release_docker_image:
           requires:
             - unit-python2.7
