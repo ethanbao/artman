@@ -127,9 +127,8 @@ def _represent_ordereddict(dumper, data):
 
 
 def _order_dict(od):
-    # The whole key order is flattened which is okay for artman user config
-    # because the order of fields in the nested message types doesn't conflict
-    # with the top-level one.
+    # The whole key order is based on the simple name of the config field
+    # instead of its full name (`username` vs `github.username`).
     keyorder = [
         'local', 'toolkit', 'github', 'username', 'token'
     ]
