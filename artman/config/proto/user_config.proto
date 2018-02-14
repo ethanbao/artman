@@ -16,10 +16,12 @@ syntax = "proto3";
 
 package googleapis.artman;
 
-// Artman user config is used to store user settings. All configuration are
-// optional unless being explicitly marked required. Having some configuration
-// will simplify the CLI invocation (e.g. github config), or change the
-// execution behavior (e.g. local.toolkit).
+// The Artman user config is used to store user settings. All configuration is
+// optional unless it is explicitly marked as required. Configuration can
+// simplify the CLI invocation (e.g. github config), or change the behavior.
+// For example, when `local.toolkit` is configured to a local toolkit path, it
+// is the local toolkit that will be used (instead of the one shipped with
+// artman Docker image) when artman generates client libraries.
 //
 // The artman user config is defined in the YAML format and by default stored
 // as ~/.artman/config.yaml file. Below is an example:
@@ -39,7 +41,11 @@ message UserConfig {
 
 message LocalConfig {
   // Specify the location of local `toolkit` source code dir or binary jar.
-  // This is useful for toolkit debugging. Absolute path should be used.
+  // Otherwise, the toolkit shipped as part of the artman Docker image will be
+  // used. This is useful for toolkit debugging. This configuration currently
+  // only work when running in artman local mode.
+  //
+  // Note: Absolute path should be used.
   string toolkit = 1;
 }
 
