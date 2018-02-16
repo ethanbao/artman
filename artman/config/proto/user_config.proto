@@ -51,12 +51,12 @@ message LocalConfig {
 
 message GitHubConfig {
   // The GitHub username, which is used to submit Gitcommit and create GitHub
-  // PR. Artman user can pass a different value when invoking `artman` CLI via
+  // PR. The user can pass a different value when invoking `artman` CLI via
   // `--github-username` flag.
   string username = 1;
 
   // The GitHub personal access token that matches the specified GitHub
-  // username. Artman user can pass a different value when invoking `artman` CLI
+  // username. The user can pass a different value when invoking `artman` CLI
   // via `--github-token` flag.
   string token = 2;
 }
