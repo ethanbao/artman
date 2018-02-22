@@ -279,10 +279,10 @@ class PhpGrpcRenameTask(task_base.TaskBase):
         for filename in protoc_utils.list_files_recursive(grpc_code_dir):
             if filename.endswith('GrpcClient.php'):
                 logger.info('Performing replacements in: %s' % (filename,))
-                with open(filename) as f:
+                with open(filename, encoding='UTF-8') as f:
                     contents = f.read()
                 contents = protoc_utils.php_proto_rename(contents)
-                with open(filename, 'w') as f:
+                with open(filename, 'w', encoding='UTF-8') as f:
                     f.write(contents)
 
 
