@@ -51,6 +51,33 @@ class GapicConfigGenTask(task_base.TaskBase):
         return [gapic_requirements.ConfigGenRequirements]
 
 
+class DiscoGapicConfigGenTask(task_base.TaskBase):
+    """Generates GAPIC config file from a Discovery document"""
+    default_provides = 'gapic_config_path'
+
+    def execute(self, toolkit_path, discovery_doc,
+        output_dir, api_name, api_version, organization_name):
+        api_full_name = task_utils.api_full_name(
+            api_name, api_version, organization_name)
+        config_gen_dir = os.path.join(
+            output_dir, api_full_name + '-config-gen')
+        self.exec_command(['mkdir', '-p', config_gen_dir])
+        config_gen_path = os.path.join(config_gen_dir,
+                                       api_full_name + '_gapic.yaml')
+        args = [
+            '--discovery_doc=' + os.path.abspath(
+                os.path.expanduser(discovery_doc)),
+            '--output=' + os.path.abspath(config_gen_path)
+        ]
+        self.exec_command(
+            task_utils.gradle_task(toolkit_path, 'runDiscoConfigGen', args))
+
+        return config_gen_path
+
+    def validate(self):
+        return [gapic_requirements.ConfigGenRequirements]
+
+
 class GapicConfigMoveTask(task_base.TaskBase):
     """Move config file to gapic_api_yaml location"""
 
@@ -88,8 +115,7 @@ class GapicCodeGenTask(task_base.TaskBase):
 
     def execute(self, language, toolkit_path, descriptor_set, service_yaml,
                 gapic_api_yaml, gapic_language_yaml, package_metadata_yaml,
-                gapic_code_dir, api_name, api_version, organization_name,
-                packaging='single-artifact'):
+                gapic_code_dir, api_name, api_version, organization_name):
         existing = glob.glob('%s/*' % gapic_code_dir)
         if existing:
             self.exec_command(['rm', '-r'] + existing)
@@ -100,15 +126,9 @@ class GapicCodeGenTask(task_base.TaskBase):
                         for yaml in service_yaml]
         args = [
             '--descriptor_set=' + os.path.abspath(descriptor_set),
-            '--package_yaml=' + os.path.abspath(package_metadata_yaml),
+            '--package_yaml2=' + os.path.abspath(package_metadata_yaml),
             '--output=' + os.path.abspath(gapic_code_dir),
         ] + service_args + gapic_args
-
-        # Enable sample app generator if the packaging is set to single-artifact
-        if packaging == 'single-artifact':
-            args += ['--enabled_artifacts=surface']
-            args += ['--enabled_artifacts=test']
-            args += ['--enabled_artifacts=sample_app']
 
         self.exec_command(
             task_utils.gradle_task(toolkit_path, 'runCodeGen', args))
@@ -119,17 +139,34 @@ class GapicCodeGenTask(task_base.TaskBase):
         return [gapic_requirements.GapicRequirements]
 
 
-class JavaGapicPackagingTask(task_base.TaskBase):
-    def execute(self, gapic_code_dir, packaging='single-artifact',
-                grpc_code_dir=None, proto_code_dir=None):
-        if packaging == 'single-artifact':
-            if grpc_code_dir:
-                self.exec_command(['cp', '-rf', grpc_code_dir, gapic_code_dir])
+class DiscoGapicCodeGenTask(task_base.TaskBase):
+    """Generates GAPIC wrappers from a Discovery document"""
+    default_provides = 'gapic_code_dir'
 
-            if proto_code_dir:
-                self.exec_command(['cp', '-rf', proto_code_dir, gapic_code_dir])
+    def execute(self, language, toolkit_path, discovery_doc,
+        gapic_api_yaml, discogapic_language_yaml, package_metadata_yaml,
+        gapic_code_dir, api_name, api_version, organization_name):
+        existing = glob.glob('%s/*' % gapic_code_dir)
+        if existing:
+            self.exec_command(['rm', '-r'] + existing)
+        gapic_yaml = gapic_api_yaml + discogapic_language_yaml
+        gapic_args = ['--gapic_yaml=' + os.path.abspath(yaml)
+                      for yaml in gapic_yaml]
+        args = [
+            # TODO(andrealin): Get right absolute path for discovery_doc
+                   '--discovery_doc=' + os.path.abspath(discovery_doc),
+                   '--package_yaml2=' + os.path.abspath(package_metadata_yaml),
+                   '--output=' + os.path.abspath(gapic_code_dir),
+                   ] + gapic_args
 
-            self.exec_command([gapic_code_dir + '/gradlew', '-p', gapic_code_dir, 'jar'])
+        self.exec_command(
+            task_utils.gradle_task(toolkit_path, 'runDiscoCodeGen', args))
+
+        return gapic_code_dir
+
+    def validate(self):
+        return [gapic_requirements.GapicRequirements]
+
 
 class CSharpGapicPackagingTask(task_base.TaskBase):
     def execute(self, gapic_code_dir, grpc_code_dir, proto_code_dir, gapic_api_yaml):

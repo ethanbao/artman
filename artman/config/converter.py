@@ -54,25 +54,14 @@ def convert_to_legacy_config_dict(artifact_config, root_dir, output_dir):
     common['proto_deps'] = legacy_proto_deps
     common['proto_test_deps'] = legacy_test_proto_deps
     common['desc_proto_path'] = desc_proto_paths
-
-    package_type = 'grpc_client'  # default package_type
-    packaging = 'single-artifact'  # default packaing
-    if artifact_config.type == Artifact.GRPC_COMMON:
-        package_type = 'grpc_common'
-        # For backward-compatibility.
-        # TODO(ethanbao): Should not restrict to google-cloud packaging.
-        packaging = 'google-cloud'
-    elif artifact_config.type == Artifact.GAPIC_ONLY:
-        packaging = 'google-cloud'
-
-    common['packaging'] = packaging
-    common['package_type'] = package_type
+    common['artifact_type'] = Artifact.Type.Name(artifact_config.type)
 
     result = {}
     result['common'] = common
 
-    if artifact_config.type == Artifact.GAPIC_CONFIG:
-        # Early return if the artifact type is GAPIC_CONFIG
+    if artifact_config.type == Artifact.GAPIC_CONFIG\
+        or artifact_config.type == Artifact.DISCOGAPIC_CONFIG:
+        # Early return if the artifact type is GAPIC_CONFIG or DISCOGAPIC_CONFIG
         return result
 
     language = Artifact.Language.Name(
@@ -88,18 +77,6 @@ def convert_to_legacy_config_dict(artifact_config, root_dir, output_dir):
         language_config_dict['release_level'] = (
             Artifact.ReleaseLevel.Name(
                 artifact_config.release_level).lower())
-
-    # Convert package version configuration.
-    pv = artifact_config.package_version
-    if pv:
-        package_version_dict = {}
-        if pv.grpc_dep_lower_bound:
-            package_version_dict['lower'] = pv.grpc_dep_lower_bound
-        if pv.grpc_dep_upper_bound:
-            package_version_dict['upper'] = pv.grpc_dep_upper_bound
-        if package_version_dict.keys():
-            language_config_dict['generated_package_version'] = (
-                package_version_dict)
 
     result[language] = language_config_dict
     return result
@@ -148,7 +125,7 @@ def _calculate_rel_gapic_output_dir(language, api_name, api_version):
     elif language == 'nodejs':
         return 'js/%s-%s' % (api_name, api_version)
     elif language == 'php':
-        return 'google-php-cloud-%s-%s' % (api_name, api_version)
+        return 'php/google-cloud-%s-%s' % (api_name, api_version)
     elif language == 'python':
         return 'python/%s-%s' % (api_name, api_version)
     elif language == 'ruby':

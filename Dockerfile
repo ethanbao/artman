@@ -43,7 +43,7 @@ RUN mkdir -p /usr/src/protoc/ \
   && ln -s /usr/src/protoc/bin/protoc /usr/local/bin/protoc
 
 # Install GRPC and Protobuf.
-RUN pip3 install --upgrade pip \
+RUN pip3 install --upgrade pip==9.0.3 \
   && pip3 install \
     # Ensure that grpcio matches requirements.txt
     grpcio==1.10.0 \
@@ -134,7 +134,7 @@ RUN pear install PHP_CodeSniffer-2.9.1 \
 #     protoc output.
 RUN apt-get update \
   && apt-get install -y pandoc \
-  && pip3 install protoc-docs-plugin==0.2.0 \
+  && pip3 install protoc-docs-plugin==0.3.0 \
   && rm -rf /var/lib/apt/lists/*
 
 # Install .NET Core SDK (about 280MB)
@@ -166,12 +166,12 @@ RUN curl -SL $DOTNET_SDK_DOWNLOAD_URL --output dotnet.tar.gz \
 # Install couple of git repos
 RUN git clone https://github.com/googleapis/googleapis \
   && cd googleapis \
-  && git checkout 0fa1df7241b5dad99cd860c757232f94dbbb3e03 \
+  && git checkout 4d308b21b2553e4d7f5eaffa72e109c85d147be7 \
   && cd .. \
   && rm -rf /googleapis/.git/
 RUN git clone https://github.com/googleapis/toolkit \
   && cd toolkit/ \
-  && git checkout 1cf322cd065ee784658339f641016c93b62ce812 \
+  && git checkout 24fb87147bdbc03f0ba7fc83dde3e6272ce35682 \
   && cd .. \
   && rm -rf /toolkit/.git/
 ENV TOOLKIT_HOME /toolkit
@@ -199,4 +199,4 @@ ADD artman-user-config-in-docker.yaml /root/.artman/config.yaml
 # Install artman.
 ADD . /artman
 ARG install_artman_from_source=false
-RUN if [ "$install_artman_from_source" = true ]; then pip3 install -e /artman; else pip3 install googleapis-artman==0.7.0; rm -r /artman; fi
+RUN if [ "$install_artman_from_source" = true ]; then pip3 install -e /artman; else pip3 install googleapis-artman==0.10.0; rm -r /artman; fi

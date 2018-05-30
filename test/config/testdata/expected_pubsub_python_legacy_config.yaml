@@ -9,8 +9,7 @@ common:
   - /tmp/input
   organization_name: google-cloud
   output_dir: /tmp/output
-  package_type: grpc_client
-  packaging: google-cloud
+  artifact_type: GAPIC
   proto_deps:
   - google-common-protos
   - google-iam-v1
@@ -24,9 +23,6 @@ common:
   - google-iam-v1
 python:
   gapic_code_dir: /tmp/output/python/pubsub-v1
-  generated_package_version:
-    lower: 0.90.3
-    upper: 0.91dev
   git_repos:
     staging-github:
       location: git@github.com:ethanbao/api-client-staging.git
